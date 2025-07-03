@@ -5,6 +5,8 @@
 This is a remote signer for CometBFT, which is used to sign blocks and transactions in a CometBFT network.
 It is designed to be used in a development environment only, and is not suitable for production use.
 
+This is still in testing.
+
 ## Installation
 
 To install CometKMS, you need to have Go installed on your system. You can download Go from the official website: https://golang.org/dl/
