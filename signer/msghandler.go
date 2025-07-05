@@ -1,10 +1,58 @@
 package signer
 
 import (
+	"log"
+
 	pbprivval "github.com/cometbft/cometbft/proto/tendermint/privval"
 	"github.com/cometbft/cometbft/types"
-	"log"
 )
+
+func (s *SimpleSigner) handleRequest(msg *pbprivval.Message, activeConn bool) pbprivval.Message {
+	// Main handler for incoming messages from node
+	switch req := msg.Sum.(type) {
+
+	// Handle Pubkey Requests
+	case *pbprivval.Message_PubKeyRequest:
+		log.Printf("Received PubKeyRequest for chain ID: %s", req.PubKeyRequest.ChainId)
+		return pbprivval.Message{
+			Sum: &pbprivval.Message_PubKeyResponse{
+				PubKeyResponse: &pbprivval.PubKeyResponse{PubKey: s.PubKey},
+			},
+		}
+
+	// Handle Vote Signing Requests
+	case *pbprivval.Message_SignVoteRequest:
+		log.Printf("Received SignVoteRequest for chain ID: %s", req.SignVoteRequest.ChainId)
+		// Check for double sign attempts before handling the sign vote request
+		if !activeConn {
+			log.Printf("Ignoring sign vote request from inactive connection: %s", req.SignVoteRequest.ChainId)
+			return pbprivval.Message{}
+		} else {
+			dsCheck := s.isDoubleSignAttempt(req.SignVoteRequest)
+			if !dsCheck {
+				return s.handleSignVoteRequest(req.SignVoteRequest)
+			} else {
+				return pbprivval.Message{}
+			}
+		}
+
+	// Handle Proposal Signing Requests
+	case *pbprivval.Message_SignProposalRequest:
+		log.Printf("Received SignProposalRequest for chain ID: %s", req.SignProposalRequest.ChainId)
+		if !activeConn {
+			log.Printf("Ignoring sign proposal request from inactive connection: %s", req.SignProposalRequest.ChainId)
+			return pbprivval.Message{}
+		} else {
+			return s.handleSignProposalRequest(req.SignProposalRequest)
+		}
+
+	default:
+		log.Printf("Received Ping Request: %T", msg.Sum)
+		return pbprivval.Message{
+			Sum: &pbprivval.Message_PingResponse{PingResponse: &pbprivval.PingResponse{}},
+		}
+	}
+}
 
 func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbprivval.Message {
 
@@ -27,10 +75,10 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 
 	// Assign state struct with requested vote information
 	state := &SigningState{
-		Type:    req.Vote.Type,
-		TypeStr: req.Vote.Type.String(),
 		Height:  req.Vote.Height,
 		Round:   req.Vote.Round,
+		TypeStr: req.Vote.Type.String(),
+		Type:    req.Vote.Type,
 		BlockID: BlockID{
 			BlockHash: req.Vote.BlockID.Hash,
 			PartSetHeader: PartSetHeader{
@@ -56,7 +104,7 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 		req.Vote.Height,
 		req.Vote.Round,
 		req.Vote.Type,
-		req.Vote.BlockID.Hash[:8],
+		req.Vote.BlockID.Hash,
 	)
 
 	// Return the signed vote response
