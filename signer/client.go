@@ -45,17 +45,16 @@ func (s *SimpleSigner) clientConnections(ctx context.Context) error {
 	if s.addressBackup == "" {
 		log.Println("No secondary address provided, using primary connection only.")
 	} else {
+
 		// Attempt to connect to the secondary node
 		s.connectionManager.secondaryConn, err = s.initConnection(ctx, s.addressBackup)
 		if err != nil {
-			s.connectionManager.isPrimaryConnActiveSigner = true
-			s.connectionManager.isSecondaryConnActiveSigner = false
 			logmsg := fmt.Errorf("failed to connect to secondary node: %w", err)
 			log.Printf("%s", logmsg)
-
+		} else {
+			defer s.connectionManager.secondaryConn.Close()
+			log.Println("Connected to secondary node:", s.addressBackup)
 		}
-		defer s.connectionManager.secondaryConn.Close()
-		log.Println("Connected to secondary node:", s.addressBackup)
 	}
 
 	// Set up a reader and writer for both connections
@@ -63,16 +62,40 @@ func (s *SimpleSigner) clientConnections(ctx context.Context) error {
 		// Assign separate vars for primary and secondary connections before entering the loop so they cant change in the middle of the loop.
 		// There is scenario where primary = true and then connection fails, sets secondary to true
 		// and then it submits signature to secondary connection after already submitting to primary connection
+		if s.connectionManager.primaryConn == nil {
+			s.connectionManager.primaryConn, err = s.initConnection(ctx, s.address)
+			if err != nil {
+				logmsg := fmt.Errorf("failed to reconnect to primary node: %w", err)
+				log.Printf("%s", logmsg)
+				s.connectionManager.isPrimaryConnActiveSigner = false
+				s.connectionManager.isSecondaryConnActiveSigner = true
+			} else {
+				s.connectionManager.isPrimaryConnActiveSigner = true
+				s.connectionManager.isSecondaryConnActiveSigner = false
+				log.Println("Reconnected to primary node:", s.address)
+			}
+		}
+		if s.connectionManager.secondaryConn == nil {
+			s.connectionManager.secondaryConn, err = s.initConnection(ctx, s.addressBackup)
+			if err != nil {
+				logmsg := fmt.Errorf("failed to reconnect to secondary node: %w", err)
+				log.Printf("%s", logmsg)
+				s.connectionManager.isPrimaryConnActiveSigner = true
+				s.connectionManager.isSecondaryConnActiveSigner = false
+			} else {
+				log.Println("Reconnected to secondary node:", s.addressBackup)
+			}
+		}
+
 		isPrimaryConnActive := s.connectionManager.isPrimaryConnActiveSigner
 		isSecondaryConnActive := s.connectionManager.isSecondaryConnActiveSigner
 
 		// Check to make sure both connections aren't active signers at the same time.
 		if isPrimaryConnActive && isSecondaryConnActive {
-			return fmt.Errorf("both primary and secondary connections are active, cannot handle messages")
+			return fmt.Errorf("both primary and secondary connections are active, cannot handle messages...")
 		} else {
-
 			// Handle messages from the primary connection
-			if isPrimaryConnActive && s.connectionManager.primaryConn != nil {
+			if s.connectionManager.primaryConn != nil {
 				err := s.haMsgHandler(ctx, s.connectionManager.primaryConn, isPrimaryConnActive)
 				if err != nil {
 					s.connectionManager.isPrimaryConnActiveSigner = false
@@ -82,7 +105,7 @@ func (s *SimpleSigner) clientConnections(ctx context.Context) error {
 			}
 
 			// Handle messages from the secondary connection
-			if isSecondaryConnActive && s.connectionManager.secondaryConn != nil {
+			if s.connectionManager.secondaryConn != nil {
 				err = s.haMsgHandler(ctx, s.connectionManager.secondaryConn, isSecondaryConnActive)
 				if err != nil {
 					s.connectionManager.isPrimaryConnActiveSigner = true

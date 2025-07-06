@@ -13,7 +13,16 @@ func (s *SimpleSigner) handleRequest(msg *pbprivval.Message, activeConn bool) pb
 
 	// Handle Pubkey Requests
 	case *pbprivval.Message_PubKeyRequest:
-		log.Printf("Received PubKeyRequest for chain ID: %s", req.PubKeyRequest.ChainId)
+		log.Printf("Received PubKeyRequest for activeConn: %t", activeConn)
+		if !activeConn {
+			return pbprivval.Message{
+				Sum: &pbprivval.Message_PubKeyResponse{
+					PubKeyResponse: &pbprivval.PubKeyResponse{
+						PubKey: s.secondaryPubkey,
+					},
+				},
+			}
+		}
 		return pbprivval.Message{
 			Sum: &pbprivval.Message_PubKeyResponse{
 				PubKeyResponse: &pbprivval.PubKeyResponse{PubKey: s.PubKey},
