@@ -2,11 +2,12 @@ package signer
 
 import (
 	"context"
-	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
-	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 	"log"
 	"sync"
 	"time"
+
+	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
+	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 )
 
 // Run starts the signer and handles one connection at a time.
@@ -68,12 +69,13 @@ func (s *SimpleSigner) keyRunner(ctx context.Context, role Role, addr string) er
 					continue
 				}
 
+				// Contest handler checks if primary or secondary connection is nil and swaps signing key owner if necessary
 				contextHandlerErr := s.contextHandler()
 				if contextHandlerErr != nil {
 					log.Printf("Context handler error for role %s: %v", role, contextHandlerErr)
 				}
 			}
-			log.Printf("Connection for role %s at %s closed", role, addr)
+			log.Printf("Connection for role %s closed, retrying...", role)
 		}
 	}
 }
