@@ -6,60 +6,50 @@ import (
 	"io"
 	"log"
 	"net"
-	"time"
 
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	cmtencoding "github.com/cometbft/cometbft/crypto/encoding"
 	cmtnet "github.com/cometbft/cometbft/libs/net"
 	"github.com/cometbft/cometbft/libs/protoio"
 	cmtp2pconn "github.com/cometbft/cometbft/p2p/conn"
+	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 	pbprivval "github.com/cometbft/cometbft/proto/tendermint/privval"
 	"github.com/golang/protobuf/proto"
 )
 
 // NewSimpleSigner initializes a signer with address and key.
-func NewSigner(addr string, privKey cmted25519.PrivKey, keyFilePath string, stateFilePath string) (*SimpleSigner, error) {
+func NewSigner(addr string, secondaryAddr string, privKey cmted25519.PrivKey, nonsigningPrivkey cmted25519.PrivKey, nonsigningPubkey pbcrypto.PublicKey, keyFilePath string, stateFilePath string) (*SimpleSigner, error) {
 	pubKey, err := cmtencoding.PubKeyToProto(privKey.PubKey())
 	if err != nil {
 		return nil, err
 	}
 
 	return &SimpleSigner{
-		addr:          addr,
-		privKey:       privKey,
-		PubKey:        pubKey,
-		keyFilePath:   keyFilePath,
-		stateFilePath: stateFilePath,
+		connectionManager: &ConnectionManager{
+			primaryAddr:   addr,
+			secondaryAddr: secondaryAddr,
+		},
+		signingKey:                 privKey,
+		signingPubkey:              pubKey,
+		secondaryNonsigningPrivkey: nonsigningPrivkey,
+		secondaryNonsigningPubkey:  nonsigningPubkey,
+		keyFilePath:                keyFilePath,
+		stateFilePath:              stateFilePath,
 	}, nil
 }
 
-// Run starts the signer and handles one connection at a time.
-func (s *SimpleSigner) Run(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			if err := s.connectAndServe(ctx); err != nil {
-				fmt.Println("connection error:", err)
-				time.Sleep(2 * time.Second)
-			}
-		}
-	}
-}
-
-func (s *SimpleSigner) connectAndServe(ctx context.Context) error {
+func (s *SimpleSigner) connectAndServe(ctx context.Context, addr string, privateKey cmted25519.PrivKey, pubkey pbcrypto.PublicKey) (*cmtp2pconn.SecretConnection, error) {
 	// Create a new connection to the node
-	proto, addr := cmtnet.ProtocolAndAddress(s.addr)
+	proto, addr := cmtnet.ProtocolAndAddress(addr)
 	connRaw, err := (&net.Dialer{}).DialContext(ctx, proto, addr)
 	if err != nil {
-		return fmt.Errorf("dial failed: %w", err)
+		return nil, fmt.Errorf("dial failed: %w", err)
 	}
 	defer connRaw.Close()
 
-	conn, err := cmtp2pconn.MakeSecretConnection(connRaw, s.privKey)
+	conn, err := cmtp2pconn.MakeSecretConnection(connRaw, privateKey)
 	if err != nil {
-		return fmt.Errorf("secret connection failed: %w", err)
+		return nil, fmt.Errorf("secret connection failed: %w", err)
 	}
 
 	log.Println("Connected to node:", conn.RemoteAddr())
@@ -69,26 +59,29 @@ func (s *SimpleSigner) connectAndServe(ctx context.Context) error {
 		msg := pbprivval.Message{}
 		msg, err = readMsg(conn, 1024*1024)
 		if err != nil {
-			return fmt.Errorf("read failed: %w", err)
+			return nil, fmt.Errorf("read failed: %w", err)
 		}
 
-		resp := s.handleRequest(&msg)
+		resp := s.handleRequest(&msg, pubkey)
 		_, err := writeMessage(conn, &resp)
 		if err != nil {
-			return fmt.Errorf("write failed: %w", err)
+			return nil, fmt.Errorf("write failed: %w", err)
 		}
 	}
 }
 
-func (s *SimpleSigner) handleRequest(msg *pbprivval.Message) pbprivval.Message {
+func (s *SimpleSigner) handleRequest(msg *pbprivval.Message, pubkey pbcrypto.PublicKey) pbprivval.Message {
 	// Main handler for incoming messages from node
 	switch req := msg.Sum.(type) {
 
 	// Handle Pubkey Requests
 	case *pbprivval.Message_PubKeyRequest:
+		if pubkey == s.secondaryNonsigningPubkey {
+			log.Println("Received PubKeyRequest for secondary nonsigning key, not signing block")
+		}
 		return pbprivval.Message{
 			Sum: &pbprivval.Message_PubKeyResponse{
-				PubKeyResponse: &pbprivval.PubKeyResponse{PubKey: s.PubKey},
+				PubKeyResponse: &pbprivval.PubKeyResponse{PubKey: pubkey},
 			},
 		}
 

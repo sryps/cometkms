@@ -5,8 +5,8 @@ import (
 	"flag"
 	"log"
 
-	"cometkms/keys"
 	"cometkms/signer"
+	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 )
 
 func main() {
@@ -14,10 +14,12 @@ func main() {
 
 	// Define command line flags
 	var addr string
+	var secondaryAddr string
 	var keyFilePath string
 	var stateFilePath string
 	var help string
 	flag.StringVar(&addr, "addr", "", "validator address to connect to (example: tcp://127.0.0.1:12345)")
+	flag.StringVar(&secondaryAddr, "addr-backup", "", "backup validator address to connect to (example: tcp://127.0.0.1:54321)")
 	flag.StringVar(&keyFilePath, "privkey", "priv_validator_key.json", "path to private key file")
 	flag.StringVar(&stateFilePath, "statefile", "priv_validator_state.json", "path to signing state file")
 	flag.StringVar(&help, "help", "", "show help message")
@@ -33,10 +35,13 @@ func main() {
 	if addr == "" {
 		log.Fatal("Node address is required - use -addr flag (example: tcp://127.0.0.1:12345)")
 	}
+	if secondaryAddr == "" {
+		log.Printf("No backup address provided, using primary address %s", addr)
+	}
 
 	// Load the private key from the specified file
 	log.Printf("Loading private key from %s", keyFilePath)
-	privkey, _, err := keys.LoadKeyFromFile(keyFilePath)
+	privkey, _, err := signer.LoadKeyFromFile(keyFilePath)
 	if err != nil {
 		log.Fatalf("Failed to load key: %v", err)
 	}
@@ -46,8 +51,18 @@ func main() {
 		log.Fatalf("Failed to create state file: %v", err)
 	}
 
+	// Create nonsigning public key
+	var emptyPubkey pbcrypto.PublicKey
+	nonsigningPrivkey, nonsigningPubkey := signer.SetSecondaryKeys()
+	if nonsigningPrivkey == nil {
+		log.Fatal("Failed to set secondary private key")
+	}
+	if nonsigningPubkey == emptyPubkey {
+		log.Fatal("Failed to set secondary public key")
+	}
+
 	// Initialize the signer with the address, private key, and file paths
-	signer, err := signer.NewSigner(addr, privkey, keyFilePath, stateFilePath)
+	signer, err := signer.NewSigner(addr, secondaryAddr, privkey, nonsigningPrivkey, nonsigningPubkey, keyFilePath, stateFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}

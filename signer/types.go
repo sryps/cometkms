@@ -2,6 +2,7 @@ package signer
 
 import (
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
+	cmtp2pconn "github.com/cometbft/cometbft/p2p/conn"
 	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 	pbtypes "github.com/cometbft/cometbft/proto/tendermint/types"
 	"time"
@@ -9,11 +10,20 @@ import (
 
 // SimpleSigner is a struct that holds the configuration for a remote signer.
 type SimpleSigner struct {
-	addr          string
-	privKey       cmted25519.PrivKey
-	PubKey        pbcrypto.PublicKey
-	stateFilePath string
-	keyFilePath   string
+	signingKey                 cmted25519.PrivKey
+	signingPubkey              pbcrypto.PublicKey
+	secondaryNonsigningPrivkey cmted25519.PrivKey
+	secondaryNonsigningPubkey  pbcrypto.PublicKey
+	stateFilePath              string
+	keyFilePath                string
+	connectionManager          *ConnectionManager
+}
+
+type ConnectionManager struct {
+	primaryConn   *cmtp2pconn.SecretConnection
+	secondaryConn *cmtp2pconn.SecretConnection
+	primaryAddr   string
+	secondaryAddr string
 }
 
 // SigningState is a struct that holds the state of the last signed state.

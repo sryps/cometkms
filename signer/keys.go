@@ -1,4 +1,4 @@
-package keys
+package signer
 
 import (
 	"encoding/json"
@@ -7,6 +7,9 @@ import (
 	"os"
 
 	"github.com/cometbft/cometbft/crypto/ed25519"
+	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
+	cmtencoding "github.com/cometbft/cometbft/crypto/encoding"
+	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 )
 
 type KeyPair struct {
@@ -54,4 +57,13 @@ func LoadKeyFromFile(path string) (ed25519.PrivKey, ed25519.PubKey, error) {
 	pubKey := privKey.PubKey().(ed25519.PubKey)
 	log.Printf("Loaded private key for address %s", keyPair.Address)
 	return privKey, pubKey, nil
+}
+
+func SetSecondaryKeys() (ed25519.PrivKey, pbcrypto.PublicKey) {
+	tmpPrivKey := cmted25519.GenPrivKey()
+	tmpPubKey, _ := cmtencoding.PubKeyToProto(tmpPrivKey.PubKey())
+	// convert pub key to hex string for logging
+	tmpPubKeyHex := fmt.Sprintf("%X", tmpPubKey.String()[:24])
+	log.Printf("Generated new secondary public key: %s", tmpPubKeyHex)
+	return tmpPrivKey, tmpPubKey
 }

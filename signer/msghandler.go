@@ -11,7 +11,7 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 	// Sign the vote request body
 	var err error
 	signBytes := types.VoteSignBytes(req.ChainId, req.Vote)
-	req.Vote.Signature, err = s.privKey.Sign(signBytes)
+	req.Vote.Signature, err = s.signingKey.Sign(signBytes)
 	if err != nil {
 		return s.returnSigningVoteError(err)
 	}
@@ -19,7 +19,7 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 	// Sign the vote extension (if present)
 	if len(req.Vote.Extension) > 0 {
 		extSignBytes := types.VoteExtensionSignBytes(req.ChainId, req.Vote)
-		req.Vote.ExtensionSignature, err = s.privKey.Sign(extSignBytes)
+		req.Vote.ExtensionSignature, err = s.signingKey.Sign(extSignBytes)
 		if err != nil {
 			return s.returnSigningVoteError(err)
 		}
@@ -56,7 +56,7 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 		req.Vote.Height,
 		req.Vote.Round,
 		req.Vote.Type,
-		req.Vote.BlockID.Hash[:8],
+		req.Vote.BlockID.Hash[:10],
 	)
 
 	// Return the signed vote response
@@ -74,7 +74,7 @@ func (s *SimpleSigner) handleSignProposalRequest(req *pbprivval.SignProposalRequ
 	// Sign the proposal
 	var err error
 	signBytes := types.ProposalSignBytes(req.ChainId, req.Proposal)
-	req.Proposal.Signature, err = s.privKey.Sign(signBytes)
+	req.Proposal.Signature, err = s.signingKey.Sign(signBytes)
 	if err != nil {
 		return s.returnSigningProposalError(err)
 	}
