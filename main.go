@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 
@@ -68,8 +67,7 @@ func main() {
 	}
 
 	// Start the remote signer
-	ctx := context.Background()
-	if err := signer.Run(ctx); err != nil {
+	if err := signer.Run(); err != nil {
 		log.Fatal(err)
 	}
 }

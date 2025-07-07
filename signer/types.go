@@ -1,10 +1,12 @@
 package signer
 
 import (
+	"context"
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	cmtp2pconn "github.com/cometbft/cometbft/p2p/conn"
 	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 	pbtypes "github.com/cometbft/cometbft/proto/tendermint/types"
+	"sync"
 	"time"
 )
 
@@ -14,17 +16,30 @@ type SimpleSigner struct {
 	signingPubkey              pbcrypto.PublicKey
 	secondaryNonsigningPrivkey cmted25519.PrivKey
 	secondaryNonsigningPubkey  pbcrypto.PublicKey
+	mu                         sync.Mutex
+	signingKeyOwner            Role //primary or secondary
 	stateFilePath              string
 	keyFilePath                string
 	connectionManager          *ConnectionManager
 }
 
 type ConnectionManager struct {
-	primaryConn   *cmtp2pconn.SecretConnection
-	secondaryConn *cmtp2pconn.SecretConnection
-	primaryAddr   string
-	secondaryAddr string
+	primaryConn     *cmtp2pconn.SecretConnection
+	secondaryConn   *cmtp2pconn.SecretConnection
+	primaryCtx      context.Context
+	primaryCancel   context.CancelFunc
+	secondaryCtx    context.Context
+	secondaryCancel context.CancelFunc
+	primaryAddr     string
+	secondaryAddr   string
 }
+
+type Role string
+
+const (
+	Primary   Role = "primary"
+	Secondary Role = "secondary"
+)
 
 // SigningState is a struct that holds the state of the last signed state.
 type SigningState struct {
