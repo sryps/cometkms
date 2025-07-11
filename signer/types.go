@@ -1,12 +1,14 @@
 package signer
 
 import (
+	"net"
+	"sync"
+	"time"
+
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	cmtp2pconn "github.com/cometbft/cometbft/p2p/conn"
 	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 	pbtypes "github.com/cometbft/cometbft/proto/tendermint/types"
-	"sync"
-	"time"
 )
 
 // SimpleSigner is a struct that holds the configuration for a remote signer.
@@ -23,10 +25,12 @@ type SimpleSigner struct {
 }
 
 type ConnectionManager struct {
-	primaryConn   *cmtp2pconn.SecretConnection
-	secondaryConn *cmtp2pconn.SecretConnection
-	primaryAddr   string
-	secondaryAddr string
+	primaryConn      *cmtp2pconn.SecretConnection
+	primaryTcpConn   net.Conn
+	secondaryConn    *cmtp2pconn.SecretConnection
+	secondaryTcpConn net.Conn
+	primaryAddr      string
+	secondaryAddr    string
 }
 
 type Role string

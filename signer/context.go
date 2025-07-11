@@ -1,10 +1,11 @@
 package signer
 
 import (
+	"context"
 	"log"
 )
 
-func (s *SimpleSigner) contextHandler() error {
+func (s *SimpleSigner) contextHandler(ctx context.Context) error {
 	keyOwner := s.getSigningKeyOwner()
 
 	if s.connectionManager.primaryConn == nil && keyOwner == Primary {
@@ -13,6 +14,7 @@ func (s *SimpleSigner) contextHandler() error {
 			log.Printf("Secondary connection is available, switching signing key owner to secondary.")
 			s.setSigningKeyOwner(Secondary)
 			s.connectionManager.secondaryConn.Close()
+			<-ctx.Done()
 		}
 	}
 
@@ -21,6 +23,7 @@ func (s *SimpleSigner) contextHandler() error {
 		if s.connectionManager.primaryConn != nil {
 			s.setSigningKeyOwner(Primary)
 			s.connectionManager.primaryConn.Close()
+			<-ctx.Done()
 		}
 	}
 

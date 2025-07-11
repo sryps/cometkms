@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"cometkms/signer"
+
 	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 )
 
@@ -71,10 +72,17 @@ func main() {
 	}
 
 	// Start the remote signer
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	if err := signer.Run(ctx); err != nil {
-		log.Fatal(err)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Received termination signal, shutting down signer...")
+			return
+		default:
+			if err := signer.Run(ctx); err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
 }

@@ -1,9 +1,10 @@
 package signer
 
 import (
+	"log"
+
 	pbprivval "github.com/cometbft/cometbft/proto/tendermint/privval"
 	"github.com/cometbft/cometbft/types"
-	"log"
 )
 
 func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbprivval.Message {
@@ -51,12 +52,16 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 	}
 
 	// Log the signed vote
+	var blockIDHash []byte
+	if req.Vote.BlockID.Hash != nil {
+		blockIDHash = req.Vote.BlockID.Hash[:8]
+	}
 	log.Printf(
 		"Signed vote:  height=%d  round=%d  type=%s  hash=%X\n",
 		req.Vote.Height,
 		req.Vote.Round,
 		req.Vote.Type,
-		req.Vote.BlockID.Hash,
+		blockIDHash,
 	)
 
 	// Return the signed vote response

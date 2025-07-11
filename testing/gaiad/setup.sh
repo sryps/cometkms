@@ -22,7 +22,7 @@ gaiad genesis add-genesis-account $(gaiad keys show validator1 -a --home $dir/ga
 gaiad genesis gentx validator1 100000000000000000stake --chain-id localnet --home $dir/gaia1 --keyring-backend test
 sed -i "s|^minimum-gas-prices = \"\"|minimum-gas-prices = \"0stake\"|" $dir/gaia1/config/app.toml
 
-
+sed -i 's/"signed_blocks_window": *"100"/"signed_blocks_window": "10000000000000"/' $dir/gaia1/config/genesis.json
 
 # gaiad validator2
 if [ -d "$dir/gaia2" ]; then
