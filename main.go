@@ -80,6 +80,7 @@ func main() {
 			log.Println("Received termination signal, shutting down signer...")
 			return
 		default:
+			log.Println("Starting main signer loop...")
 			if err := signer.Run(ctx); err != nil {
 				log.Fatal(err)
 			}

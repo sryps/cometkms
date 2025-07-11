@@ -20,7 +20,7 @@ func (s *SimpleSigner) primaryConnection(ctx context.Context, addr string, role 
 			return nil
 		default:
 			// Create a new connection to the node
-			privateKey, _ := s.getKeysForRole(role)
+			privateKey, publicKey := s.getKeysForRole(role)
 
 			var err error
 			proto, addr := cmtnet.ProtocolAndAddress(addr)
@@ -56,7 +56,7 @@ func (s *SimpleSigner) primaryConnection(ctx context.Context, addr string, role 
 						return fmt.Errorf("read failed: %w", err)
 					}
 
-					resp := s.handleRequest(&msg, s.signingPubkey)
+					resp := s.handleRequest(&msg, publicKey)
 					_, err := writeMessage(s.connectionManager.primaryConn, &resp)
 					if err != nil {
 						return fmt.Errorf("write failed: %w", err)
