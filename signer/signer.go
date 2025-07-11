@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	cmtencoding "github.com/cometbft/cometbft/crypto/encoding"
@@ -42,40 +43,54 @@ func NewSigner(addr string, secondaryAddr string, privKey cmted25519.PrivKey, no
 }
 
 func (s *SimpleSigner) connectAndServe(ctx context.Context, addr string, privateKey cmted25519.PrivKey, pubkey pbcrypto.PublicKey, role Role) error {
-	// Create a new connection to the node
-	proto, addr := cmtnet.ProtocolAndAddress(addr)
-	connRaw, err := (&net.Dialer{}).DialContext(ctx, proto, addr)
-	if err != nil {
-		return fmt.Errorf("dial failed: %w", err)
-	}
-	defer connRaw.Close()
-
-	conn, err := cmtp2pconn.MakeSecretConnection(connRaw, privateKey)
-	if err != nil {
-		return fmt.Errorf("secret connection failed: %w", err)
-	}
-
-	log.Println("Connected to node:", conn.RemoteAddr(), "as", role)
-
-	if addr == s.connectionManager.primaryAddr {
-		s.connectionManager.primaryConn = conn
-	}
-	if addr == s.connectionManager.secondaryAddr {
-		s.connectionManager.secondaryConn = conn
-	}
-
-	// Set up a reader and writer for the connection
 	for {
-		msg := pbprivval.Message{}
-		msg, err = readMsg(conn, 1024*1024)
-		if err != nil {
-			return fmt.Errorf("read failed: %w", err)
-		}
+		select {
+		case <-ctx.Done():
+			log.Printf("Context done, stopping key runner for role %s", role)
+			return nil
+		default:
+			// Create a new connection to the node
+			proto, addr := cmtnet.ProtocolAndAddress(addr)
+			connRaw, err := (&net.Dialer{}).DialContext(ctx, proto, addr)
+			if err != nil {
+				return fmt.Errorf("dial failed: %w", err)
+			}
+			defer connRaw.Close()
 
-		resp := s.handleRequest(&msg, pubkey)
-		_, err := writeMessage(conn, &resp)
-		if err != nil {
-			return fmt.Errorf("write failed: %w", err)
+			conn, err := cmtp2pconn.MakeSecretConnection(connRaw, privateKey)
+			if err != nil {
+				return fmt.Errorf("secret connection failed: %w", err)
+			}
+
+			log.Println("Connected to node:", conn.RemoteAddr(), "as", role)
+
+			if addr == s.connectionManager.primaryAddr {
+				s.connectionManager.primaryConn = conn
+			}
+			if addr == s.connectionManager.secondaryAddr {
+				s.connectionManager.secondaryConn = conn
+			}
+
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(2 * time.Second):
+			}
+
+			// Set up a reader and writer for the connection
+			for {
+				msg := pbprivval.Message{}
+				msg, err = readMsg(conn, 1024*1024)
+				if err != nil {
+					return fmt.Errorf("read failed: %w", err)
+				}
+
+				resp := s.handleRequest(&msg, pubkey)
+				_, err := writeMessage(conn, &resp)
+				if err != nil {
+					return fmt.Errorf("write failed: %w", err)
+				}
+			}
 		}
 	}
 }

@@ -67,6 +67,47 @@ cp ${dir}/gaia3/config/gentx/* ${dir}/gaia1/config/gentx/
 cp ${dir}/gaia2/config/gentx/* ${dir}/gaia1/config/gentx/
 gaiad genesis collect-gentxs --home "$dir/gaia1"
 
+# copy genesis.json to other nodes
+cp "$dir/gaia1/config/genesis.json" "$dir/gaia2/config/genesis.json"
+cp "$dir/gaia1/config/genesis.json" "$dir/gaia3/config/genesis.json"
 
+# setup persistent_peers
+peer1="$(gaiad tendermint show-node-id --home $dir/gaia1)"
+peer2="$(gaiad tendermint show-node-id --home $dir/gaia2)"
+peer3="$(gaiad tendermint show-node-id --home $dir/gaia3)"
+
+port2=36656
+port3=46656
+
+
+# change port 9090 for each node
+sed -i 's/9090/9091/' $dir/gaia2/config/app.toml
+sed -i 's/9090/9092/' $dir/gaia3/config/app.toml
+
+#change port 26657 for each node
+sed -i 's/26657/36657/' $dir/gaia2/config/config.toml
+sed -i 's/26657/46657/' $dir/gaia3/config/config.toml
+
+#change port 6060
+sed -i 's/6060/6061/' $dir/gaia2/config/config.toml
+sed -i 's/6060/6062/' $dir/gaia3/config/config.toml
+
+# change port 26656
+sed -i 's/26656/36656/' $dir/gaia2/config/config.toml
+sed -i 's/26656/46656/' $dir/gaia3/config/config.toml
+
+sed -i "s|^persistent_peers = \"\"|persistent_peers = \"$peer1@127.0.0.1:26656,$peer2@127.0.0.1:$port2,$peer3@127.0.0.1:$port3\"|" $dir/gaia1/config/config.toml
+sed -i "s|^persistent_peers = \"\"|persistent_peers = \"$peer1@127.0.0.1:26656,$peer2@127.0.0.1:$port2,$peer3@127.0.0.1:$port3\"|" $dir/gaia2/config/config.toml
+sed -i "s|^persistent_peers = \"\"|persistent_peers = \"$peer1@127.0.0.1:26656,$peer2@127.0.0.1:$port2,$peer3@127.0.0.1:$port3\"|" $dir/gaia3/config/config.toml
+
+# set pex to false
+sed -i 's/pex = true/pex = false/' $dir/gaia1/config/config.toml
+sed -i 's/pex = true/pex = false/' $dir/gaia2/config/config.toml
+sed -i 's/pex = true/pex = false/' $dir/gaia3/config/config.toml
+
+# allow duplicate ip
+sed -i 's/allow_duplicate_ip = false/allow_duplicate_ip = true/' $dir/gaia1/config/config.toml
+sed -i 's/allow_duplicate_ip = false/allow_duplicate_ip = true/' $dir/gaia2/config/config.toml
+sed -i 's/allow_duplicate_ip = false/allow_duplicate_ip = true/' $dir/gaia3/config/config.toml
 
 cp "$dir/gaia3/config/priv_validator_key.json" "/home/shawn/github/cometkms/priv_validator_key.json"

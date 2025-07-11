@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"cometkms/signer"
 	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
@@ -67,7 +71,10 @@ func main() {
 	}
 
 	// Start the remote signer
-	if err := signer.Run(); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if err := signer.Run(ctx); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -56,7 +56,7 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 		req.Vote.Height,
 		req.Vote.Round,
 		req.Vote.Type,
-		req.Vote.BlockID.Hash[:10],
+		req.Vote.BlockID.Hash,
 	)
 
 	// Return the signed vote response

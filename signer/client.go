@@ -11,19 +11,15 @@ import (
 )
 
 // Run starts the signer and handles one connection at a time.
-func (s *SimpleSigner) Run() error {
+func (s *SimpleSigner) Run(ctx context.Context) error {
 
 	s.setSigningKeyOwner(Primary)
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	// setup primary connection
-	s.connectionManager.primaryCtx, s.connectionManager.primaryCancel = context.WithCancel(context.Background())
-	s.connectionManager.secondaryCtx, s.connectionManager.secondaryCancel = context.WithCancel(context.Background())
-
 	go func() {
 		defer wg.Done()
-		err := s.keyRunner(s.connectionManager.primaryCtx, Primary, s.connectionManager.primaryAddr)
+		err := s.keyRunner(ctx, Primary, s.connectionManager.primaryAddr)
 		if err != nil {
 			log.Printf("Failed to start primary key runner: %v", err)
 		}
@@ -33,7 +29,7 @@ func (s *SimpleSigner) Run() error {
 	if s.connectionManager.secondaryAddr != "" {
 		go func() {
 			defer wg.Done()
-			err := s.keyRunner(s.connectionManager.secondaryCtx, Secondary, s.connectionManager.secondaryAddr)
+			err := s.keyRunner(ctx, Secondary, s.connectionManager.secondaryAddr)
 			if err != nil {
 				log.Printf("Failed to start secondary key runner: %v", err)
 			}
@@ -44,40 +40,28 @@ func (s *SimpleSigner) Run() error {
 }
 
 func (s *SimpleSigner) keyRunner(ctx context.Context, role Role, addr string) error {
-	for {
-		select {
-		case <-ctx.Done():
-			log.Printf("Context done, stopping key runner for role %s", role)
-			return nil
-		default:
-			privKey, pubKey := s.getKeysForRole(role)
+	privKey, pubKey := s.getKeysForRole(role)
 
-			err := s.connectAndServe(ctx, addr, privKey, pubKey, role)
-			if err != nil {
-				log.Printf("Failed to connect for role %s: %v", role, addr)
-				time.Sleep(2 * time.Second)
+	err := s.connectAndServe(ctx, addr, privKey, pubKey, role)
+	if err != nil {
+		log.Printf("Failed to connect for role %s: %v", role, addr)
+		time.Sleep(2 * time.Second)
 
-				// If the connection fails, update the connection manager
-				if addr == s.connectionManager.primaryAddr {
-					s.connectionManager.primaryConn = nil
-				} else if addr == s.connectionManager.secondaryAddr {
-					s.connectionManager.secondaryConn = nil
-				}
+		// If the connection fails, update the connection manager
+		if addr == s.connectionManager.primaryAddr {
+			s.connectionManager.primaryConn = nil
+		} else if addr == s.connectionManager.secondaryAddr {
+			s.connectionManager.secondaryConn = nil
+		}
 
-				// If both connections are nil, continue to retry
-				if s.connectionManager.primaryConn == nil && s.connectionManager.secondaryConn == nil {
-					continue
-				}
-
-				// Contest handler checks if primary or secondary connection is nil and swaps signing key owner if necessary
-				contextHandlerErr := s.contextHandler()
-				if contextHandlerErr != nil {
-					log.Printf("Context handler error for role %s: %v", role, contextHandlerErr)
-				}
-			}
-			log.Printf("Connection for role %s closed, retrying...", role)
+		// Contest handler checks if primary or secondary connection is nil and swaps signing key owner if necessary
+		contextHandlerErr := s.contextHandler()
+		if contextHandlerErr != nil {
+			log.Printf("Context handler error for role %s: %v", role, contextHandlerErr)
 		}
 	}
+	log.Printf("Connection for role %s closed, retrying...", role)
+	return nil
 }
 
 func (s *SimpleSigner) getKeysForRole(role Role) (cmted25519.PrivKey, pbcrypto.PublicKey) {

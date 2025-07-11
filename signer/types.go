@@ -1,7 +1,6 @@
 package signer
 
 import (
-	"context"
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	cmtp2pconn "github.com/cometbft/cometbft/p2p/conn"
 	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
@@ -24,14 +23,10 @@ type SimpleSigner struct {
 }
 
 type ConnectionManager struct {
-	primaryConn     *cmtp2pconn.SecretConnection
-	secondaryConn   *cmtp2pconn.SecretConnection
-	primaryCtx      context.Context
-	primaryCancel   context.CancelFunc
-	secondaryCtx    context.Context
-	secondaryCancel context.CancelFunc
-	primaryAddr     string
-	secondaryAddr   string
+	primaryConn   *cmtp2pconn.SecretConnection
+	secondaryConn *cmtp2pconn.SecretConnection
+	primaryAddr   string
+	secondaryAddr string
 }
 
 type Role string
