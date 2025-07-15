@@ -50,13 +50,18 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 		log.Fatalf("Failed to save signer state: %v", err)
 	}
 
-	// Log the signed vote
+	var hash []byte
+	if len(req.Vote.BlockID.Hash) == 0 {
+		hash = []byte{0x00, 0x00, 0x00, 0x00}
+	} else {
+		hash = req.Vote.BlockID.Hash[:8]
+	}
 	log.Printf(
 		"Signed vote:  height=%d  round=%d  type=%s  hash=%X\n",
 		req.Vote.Height,
 		req.Vote.Round,
 		req.Vote.Type,
-		req.Vote.BlockID.Hash[:8],
+		hash,
 	)
 
 	// Return the signed vote response

@@ -4,6 +4,9 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"cometkms/signer"
 )
@@ -46,14 +49,24 @@ func main() {
 	}
 
 	// Initialize the signer with the address, private key, and file paths
-	signer, err := signer.NewSigner(addr, privkey, keyFilePath, stateFilePath)
+	s, err := signer.NewSigner(addr, privkey, keyFilePath, stateFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Start the remote signer
-	ctx := context.Background()
-	if err := signer.Run(ctx); err != nil {
-		log.Fatal(err)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Received termination signal, shutting down signer...")
+			return
+		default:
+			log.Println("Starting main signer loop...")
+			if err := s.Run(ctx); err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
 }

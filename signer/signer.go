@@ -7,13 +7,12 @@ import (
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	cmtencoding "github.com/cometbft/cometbft/crypto/encoding"
 	"github.com/cometbft/cometbft/libs/protoio"
-	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 	pbprivval "github.com/cometbft/cometbft/proto/tendermint/privval"
 	"github.com/golang/protobuf/proto"
 )
 
 // NewSimpleSigner initializes a signer with address and key.
-func NewSigner(addr string, secondaryAddr string, privKey cmted25519.PrivKey, nonsigningPrivkey cmted25519.PrivKey, nonsigningPubkey pbcrypto.PublicKey, keyFilePath string, stateFilePath string) (*SimpleSigner, error) {
+func NewSigner(addr string, privKey cmted25519.PrivKey, keyFilePath string, stateFilePath string) (*SimpleSigner, error) {
 	pubKey, err := cmtencoding.PubKeyToProto(privKey.PubKey())
 	if err != nil {
 		return nil, err
@@ -28,7 +27,7 @@ func NewSigner(addr string, secondaryAddr string, privKey cmted25519.PrivKey, no
 	}, nil
 }
 
-func (s *SimpleSigner) handleRequest(msg *pbprivval.Message, pubkey pbcrypto.PublicKey) pbprivval.Message {
+func (s *SimpleSigner) handleRequest(msg *pbprivval.Message) pbprivval.Message {
 	// Main handler for incoming messages from node
 	switch req := msg.Sum.(type) {
 
@@ -36,7 +35,7 @@ func (s *SimpleSigner) handleRequest(msg *pbprivval.Message, pubkey pbcrypto.Pub
 	case *pbprivval.Message_PubKeyRequest:
 		return pbprivval.Message{
 			Sum: &pbprivval.Message_PubKeyResponse{
-				PubKeyResponse: &pbprivval.PubKeyResponse{PubKey: pubkey},
+				PubKeyResponse: &pbprivval.PubKeyResponse{PubKey: s.PubKey},
 			},
 		}
 
