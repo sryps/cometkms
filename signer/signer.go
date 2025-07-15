@@ -37,7 +37,7 @@ func NewSigner(addr string, secondaryAddr string, privKey cmted25519.PrivKey, no
 	}, nil
 }
 
-func (s *SimpleSigner) handleRequest(msg *pbprivval.Message, pubkey pbcrypto.PublicKey) pbprivval.Message {
+func (s *SimpleSigner) handleRequest(msg *pbprivval.Message, pubkey pbcrypto.PublicKey, role Role) pbprivval.Message {
 	// Main handler for incoming messages from node
 	switch req := msg.Sum.(type) {
 
@@ -57,19 +57,33 @@ func (s *SimpleSigner) handleRequest(msg *pbprivval.Message, pubkey pbcrypto.Pub
 		// Check for double sign attempts before handling the sign vote request
 		dsCheck := s.isDoubleSignAttempt(req.SignVoteRequest)
 		if !dsCheck {
+			log.Printf("Signing block for role: %s", role)
 			return s.handleSignVoteRequest(req.SignVoteRequest)
+		} else {
+			return pbprivval.Message{
+				Sum: &pbprivval.Message_SignedVoteResponse{
+					SignedVoteResponse: &pbprivval.SignedVoteResponse{
+						Error: &pbprivval.RemoteSignerError{
+							Description: "Double sign attempt detected",
+						},
+					},
+				},
+			}
+
 		}
 
 	// Handle Proposal Signing Requests
 	case *pbprivval.Message_SignProposalRequest:
 		return s.handleSignProposalRequest(req.SignProposalRequest)
 
-	default:
+	case *pbprivval.Message_PingRequest:
 		return pbprivval.Message{
 			Sum: &pbprivval.Message_PingResponse{PingResponse: &pbprivval.PingResponse{}},
 		}
+
+	default:
+		return pbprivval.Message{}
 	}
-	return pbprivval.Message{}
 }
 
 func readMsg(reader io.Reader, maxReadSize int) (msg pbprivval.Message, err error) {

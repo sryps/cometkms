@@ -56,7 +56,7 @@ func (s *SimpleSigner) primaryConnection(ctx context.Context, addr string, role 
 						return fmt.Errorf("read failed: %w", err)
 					}
 
-					resp := s.handleRequest(&msg, publicKey)
+					resp := s.handleRequest(&msg, publicKey, role)
 					_, err := writeMessage(s.connectionManager.primaryConn, &resp)
 					if err != nil {
 						return fmt.Errorf("write failed: %w", err)

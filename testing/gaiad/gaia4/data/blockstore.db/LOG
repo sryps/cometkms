@@ -1,0 +1,112 @@
+=============== Jul 14, 2025 (CST) ===============
+18:47:53.455181 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+18:47:53.458397 db@open opening
+18:47:53.458957 version@stat F·[] S·0B[] Sc·[]
+18:47:53.459913 db@janitor F·2 G·0
+18:47:53.459938 db@open done T·1.518847ms
+=============== Jul 14, 2025 (CST) ===============
+18:49:24.257399 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+18:49:24.257547 version@stat F·[] S·0B[] Sc·[]
+18:49:24.257561 db@open opening
+18:49:24.257605 journal@recovery F·1
+18:49:24.257689 journal@recovery recovering @1
+18:49:24.258035 version@stat F·[] S·0B[] Sc·[]
+18:49:24.264476 db@janitor F·2 G·0
+18:49:24.264537 db@open done T·6.963844ms
+18:49:37.171374 db@close closing
+18:49:37.171448 db@close done T·72.957µs
+=============== Jul 14, 2025 (CST) ===============
+18:51:39.078747 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+18:51:39.078887 version@stat F·[] S·0B[] Sc·[]
+18:51:39.078902 db@open opening
+18:51:39.078946 journal@recovery F·1
+18:51:39.079187 journal@recovery recovering @2
+18:51:39.083892 memdb@flush created L0@4 N·162 S·32KiB "BH:..839,v39":"blo..ore,v6"
+18:51:39.084601 version@stat F·[1] S·32KiB[32KiB] Sc·[0.25]
+18:51:39.093972 db@janitor F·3 G·0
+18:51:39.094059 db@open done T·15.139805ms
+18:53:07.968605 db@close closing
+18:53:07.968745 db@close done T·139.373µs
+=============== Jul 14, 2025 (CST) ===============
+19:04:52.014625 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:04:52.014735 version@stat F·[1] S·32KiB[32KiB] Sc·[0.25]
+19:04:52.014746 db@open opening
+19:04:52.014771 journal@recovery F·1
+19:04:52.015014 journal@recovery recovering @5
+19:04:52.023007 memdb@flush created L0@7 N·186 S·44KiB "BH:..f65,v280":"blo..ore,v169"
+19:04:52.023241 version@stat F·[2] S·77KiB[77KiB] Sc·[0.50]
+19:04:52.028164 db@janitor F·4 G·0
+19:04:52.028248 db@open done T·13.495168ms
+19:05:23.053950 db@close closing
+19:05:23.054189 db@close done T·223.321µs
+=============== Jul 14, 2025 (CST) ===============
+19:11:54.527795 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:11:54.527959 version@stat F·[2] S·77KiB[77KiB] Sc·[0.50]
+19:11:54.527988 db@open opening
+19:11:54.528033 journal@recovery F·1
+19:11:54.528244 journal@recovery recovering @8
+19:11:54.535825 memdb@flush created L0@10 N·882 S·207KiB "BH:..80f,v461":"blo..ore,v356"
+19:11:54.536061 version@stat F·[3] S·284KiB[284KiB] Sc·[0.75]
+19:11:54.539800 db@janitor F·5 G·0
+19:11:54.539842 db@open done T·11.843915ms
+=============== Jul 14, 2025 (CST) ===============
+19:12:11.266664 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:12:11.266837 version@stat F·[3] S·284KiB[284KiB] Sc·[0.75]
+19:12:11.266852 db@open opening
+19:12:11.266899 journal@recovery F·1
+19:12:11.266999 journal@recovery recovering @11
+19:12:11.267166 version@stat F·[3] S·284KiB[284KiB] Sc·[0.75]
+19:12:11.270785 db@janitor F·5 G·0
+19:12:11.270814 db@open done T·3.954657ms
+=============== Jul 14, 2025 (CST) ===============
+19:12:24.789781 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:12:24.789877 version@stat F·[3] S·284KiB[284KiB] Sc·[0.75]
+19:12:24.789886 db@open opening
+19:12:24.789907 journal@recovery F·1
+19:12:24.789963 journal@recovery recovering @13
+19:12:24.790112 version@stat F·[3] S·284KiB[284KiB] Sc·[0.75]
+19:12:24.793134 db@janitor F·5 G·0
+19:12:24.793162 db@open done T·3.269846ms
+19:13:02.842904 db@close closing
+19:13:02.843004 db@close done T·97.474µs
+=============== Jul 14, 2025 (CST) ===============
+19:54:05.875574 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:54:05.875807 version@stat F·[3] S·284KiB[284KiB] Sc·[0.75]
+19:54:05.875824 db@open opening
+19:54:05.875874 journal@recovery F·1
+19:54:05.876115 journal@recovery recovering @15
+19:54:05.883830 memdb@flush created L0@17 N·492 S·120KiB "BH:..d05,v1248":"blo..ore,v1239"
+19:54:05.884044 version@stat F·[4] S·405KiB[405KiB] Sc·[1.00]
+19:54:05.889839 db@janitor F·6 G·0
+19:54:05.889920 db@open done T·14.079476ms
+19:54:05.890219 table@compaction L0·4 -> L1·0 S·405KiB Q·1726
+19:54:05.893047 table@build created L1@20 N·1436 S·405KiB "BH:..d05,v1248":"blo..ore,v1725"
+19:54:05.893063 version@stat F·[0 1] S·405KiB[0B 405KiB] Sc·[0.00 0.00]
+19:54:05.894347 table@compaction committed F-3 S+335B Ke·0 D·286 T·3.979275ms
+19:54:05.894428 table@remove removed @10
+19:54:05.894459 table@remove removed @7
+19:54:05.894485 table@remove removed @4
+19:54:26.115621 db@close closing
+19:54:26.115794 db@close done T·171.784µs
+=============== Jul 14, 2025 (CST) ===============
+19:54:27.630634 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:54:27.630781 version@stat F·[0 1] S·405KiB[0B 405KiB] Sc·[0.00 0.00]
+19:54:27.630793 db@open opening
+19:54:27.630884 journal@recovery F·1
+19:54:27.630993 journal@recovery recovering @18
+19:54:27.640721 memdb@flush created L0@21 N·2826 S·579KiB "BH:..811,v2083":"blo..ore,v1732"
+19:54:27.641453 version@stat F·[1 1] S·985KiB[579KiB 405KiB] Sc·[0.25 0.00]
+19:54:27.645729 db@janitor F·5 G·1
+19:54:27.645737 db@janitor removing table-17
+19:54:27.645785 db@open done T·14.989011ms
+=============== Jul 14, 2025 (CST) ===============
+19:54:54.329451 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:54:54.329613 version@stat F·[1 1] S·985KiB[579KiB 405KiB] Sc·[0.25 0.00]
+19:54:54.329721 db@open opening
+19:54:54.329787 journal@recovery F·1
+19:54:54.329874 journal@recovery recovering @22
+19:54:54.330293 version@stat F·[1 1] S·985KiB[579KiB 405KiB] Sc·[0.25 0.00]
+19:54:54.333256 db@janitor F·4 G·0
+19:54:54.333288 db@open done T·3.550858ms
+19:56:10.398640 db@close closing
+19:56:10.398756 db@close done T·113.835µs

@@ -83,6 +83,7 @@ func (s *SimpleSigner) getKeysForRole(role Role) (cmted25519.PrivKey, pbcrypto.P
 }
 
 func (s *SimpleSigner) setSigningKeyOwner(role Role) {
+	log.Printf("Setting signing key owner to: %s", role)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.signingKeyOwner = role
@@ -91,19 +92,5 @@ func (s *SimpleSigner) setSigningKeyOwner(role Role) {
 func (s *SimpleSigner) getSigningKeyOwner() Role {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.signingKeyOwner
-}
-
-func (s *SimpleSigner) swapSigningKeyOwner() Role {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.signingKeyOwner == Primary {
-		s.signingKeyOwner = Secondary
-	} else {
-		s.signingKeyOwner = Primary
-	}
-
-	log.Printf("Swapped signing key owner to: %s", s.signingKeyOwner)
 	return s.signingKeyOwner
 }
