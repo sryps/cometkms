@@ -1,4 +1,4 @@
-package keys
+package signer
 
 import (
 	"encoding/json"

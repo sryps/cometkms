@@ -5,7 +5,6 @@ import (
 	"flag"
 	"log"
 
-	"cometkms/keys"
 	"cometkms/signer"
 )
 
@@ -36,7 +35,7 @@ func main() {
 
 	// Load the private key from the specified file
 	log.Printf("Loading private key from %s", keyFilePath)
-	privkey, _, err := keys.LoadKeyFromFile(keyFilePath)
+	privkey, _, err := signer.LoadKeyFromFile(keyFilePath)
 	if err != nil {
 		log.Fatalf("Failed to load key: %v", err)
 	}
