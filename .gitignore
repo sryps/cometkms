@@ -1,7 +1,7 @@
 cometkms
 priv_validator_key.json
 state.json
-testing/gaiad/gaia1
-testing/gaiad/gaia2
-testing/gaiad/gaia3
-testing/gaiad/gaia4
+.testing/gaiad/gaia1
+.testing/gaiad/gaia2
+.testing/gaiad/gaia3
+.testing/gaiad/gaia4

@@ -1,72 +1,106 @@
 package main
 
 import (
+	"cometkms/signer"
 	"context"
 	"flag"
+	"fmt"
+	"github.com/cometbft/cometbft/p2p"
+	"github.com/cometbft/cometbft/privval"
+	"github.com/cometbft/cometbft/proxy"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
-	"cometkms/signer"
+	cfg "github.com/cometbft/cometbft/config"
+	cmtflags "github.com/cometbft/cometbft/libs/cli/flags"
+	cmtlog "github.com/cometbft/cometbft/libs/log"
+	nm "github.com/cometbft/cometbft/node"
+	"github.com/dgraph-io/badger/v4"
+	"github.com/spf13/viper"
 )
 
+var homeDir string
+
+func init() {
+	flag.StringVar(&homeDir, "cmt-home", "", "Path to the CometBFT config directory (if empty, uses $HOME/.cometbft)")
+}
+
 func main() {
-	log.Println("Starting remote signer CometKMS...")
-
-	// Define command line flags
-	var addr string
-	var keyFilePath string
-	var stateFilePath string
-	var help string
-	flag.StringVar(&addr, "addr", "", "validator address to connect to (example: tcp://127.0.0.1:12345)")
-	flag.StringVar(&keyFilePath, "privkey", "priv_validator_key.json", "path to private key file")
-	flag.StringVar(&stateFilePath, "statefile", "priv_validator_state.json", "path to signing state file")
-	flag.StringVar(&help, "help", "", "show help message")
 	flag.Parse()
-
-	// If help is requested, show usage and exit
-	if help != "" {
-		flag.Usage()
-		return
+	if homeDir == "" {
+		homeDir = os.ExpandEnv("$HOME/.cometbft")
 	}
 
-	// Validate required flags
-	if addr == "" {
-		log.Fatal("Node address is required - use -addr flag (example: tcp://127.0.0.1:12345)")
-	}
+	config := cfg.DefaultConfig()
+	config.SetRoot(homeDir)
+	viper.SetConfigFile(fmt.Sprintf("%s/%s", homeDir, "config/config.toml"))
 
-	// Load the private key from the specified file
-	log.Printf("Loading private key from %s", keyFilePath)
-	privkey, _, err := signer.LoadKeyFromFile(keyFilePath)
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("Reading config: %v", err)
+	}
+	if err := viper.Unmarshal(config); err != nil {
+		log.Fatalf("Decoding config: %v", err)
+	}
+	if err := config.ValidateBasic(); err != nil {
+		log.Fatalf("Invalid configuration data: %v", err)
+	}
+	dbPath := filepath.Join(homeDir, "badger")
+	db, err := badger.Open(badger.DefaultOptions(dbPath))
+
 	if err != nil {
-		log.Fatalf("Failed to load key: %v", err)
+		log.Fatalf("Opening database: %v", err)
 	}
-
-	// Create the state file if it does not exist
-	if err := signer.CreateStateFileIfNoneExists(stateFilePath); err != nil {
-		log.Fatalf("Failed to create state file: %v", err)
-	}
-
-	// Initialize the signer with the address, private key, and file paths
-	s, err := signer.NewSigner(addr, privkey, keyFilePath, stateFilePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Start the remote signer
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
-	for {
-		select {
-		case <-ctx.Done():
-			log.Println("Received termination signal, shutting down signer...")
-			return
-		default:
-			log.Println("Starting main signer loop...")
-			if err := s.Run(ctx); err != nil {
-				log.Fatal(err)
-			}
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Closing database: %v", err)
 		}
+	}()
+
+	app := signer.NewSigner(db)
+
+	pv := privval.LoadFilePV(
+		config.PrivValidatorKeyFile(),
+		config.PrivValidatorStateFile(),
+	)
+
+	nodeKey, err := p2p.LoadNodeKey(config.NodeKeyFile())
+	if err != nil {
+		log.Fatalf("failed to load node's key: %v", err)
 	}
+
+	logger := cmtlog.NewTMLogger(cmtlog.NewSyncWriter(os.Stdout))
+	logger, err = cmtflags.ParseLogLevel(config.LogLevel, logger, cfg.DefaultLogLevel)
+
+	if err != nil {
+		log.Fatalf("failed to parse log level: %v", err)
+	}
+
+	node, err := nm.NewNode(
+		context.Background(),
+		config,
+		pv,
+		nodeKey,
+		proxy.NewLocalClientCreator(app),
+		nm.DefaultGenesisDocProviderFunc(config),
+		cfg.DefaultDBProvider,
+		nm.DefaultMetricsProvider(config.Instrumentation),
+		logger,
+	)
+
+	if err != nil {
+		log.Fatalf("Creating node: %v", err)
+	}
+
+	node.Start()
+	defer func() {
+		node.Stop()
+		node.Wait()
+	}()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
 }
