@@ -2,12 +2,14 @@ package signer
 
 import (
 	"bytes"
+	"cometkms/types"
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/dgraph-io/badger/v4"
-	"log"
 )
 
 func (app *App) validateTx(tx []byte) (uint32, string) {
@@ -55,8 +57,8 @@ func (app *App) txExists(tx []byte) bool {
 	return exists
 }
 
-func UnmarshalDBEntry(data []byte) (*Entry, error) {
-	var entry Entry
+func UnmarshalDBEntry(data []byte) (*types.DBEntry, error) {
+	var entry types.DBEntry
 	err := json.Unmarshal(data, &entry)
 	if err != nil {
 		return nil, err

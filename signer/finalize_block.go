@@ -3,6 +3,8 @@ package signer
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"log"
 )
@@ -16,15 +18,25 @@ func (app *App) FinalizeBlock(_ context.Context, req *abcitypes.FinalizeBlockReq
 			log.Printf("Error: invalid transaction index %v", i)
 			txs[i] = &abcitypes.ExecTxResult{Code: code, Log: logData}
 		} else {
-			parts := bytes.SplitN(tx, []byte("="), 2)
-			key, value := parts[0], parts[1]
-			log.Printf("Adding key %s with value %s", key, value)
 
-			if err := app.onGoingBlock.Set(key, value); err != nil {
+			unmarshaledTx, err := UnmarshalDBEntry(tx)
+			if err != nil {
+				log.Printf("Error unmarshaling transaction: %v", err)
+				txs[i] = &abcitypes.ExecTxResult{Code: 4, Log: "Failed to unmarshal transaction"}
+				continue
+			}
+			key := unmarshaledTx.Key
+			value := unmarshaledTx.Value
+			keyBytes := []byte(fmt.Sprintf("%x", key))
+			valueBytes, err := json.Marshal(value)
+			if err != nil {
+				log.Fatalf("failed to marshal value: %v", err)
+			}
+			valueBytes = bytes.TrimSpace(valueBytes)
+
+			if err := app.onGoingBlock.Set(keyBytes, valueBytes); err != nil {
 				log.Panicf("Error writing to database, unable to execute tx: %v", err)
 			}
-
-			log.Printf("Successfully added key %s with value %s", key, value)
 
 			// Add an event for the transaction execution.
 			// Multiple events can be emitted for a transaction, but we are adding only one event
@@ -34,16 +46,19 @@ func (app *App) FinalizeBlock(_ context.Context, req *abcitypes.FinalizeBlockReq
 					{
 						Type: "app",
 						Attributes: []abcitypes.EventAttribute{
-							{Key: "key", Value: string(key), Index: true},
-							{Key: "value", Value: string(value), Index: true},
+							{Key: "key", Value: string(keyBytes), Index: true},
+							{Key: "value", Value: string(valueBytes), Index: true},
 						},
 					},
 				},
 			}
 		}
 	}
+	app.AppHash = req.GetHash()
+	log.Printf("FinalizeBlock: computed AppHash = %X", app.AppHash)
 
 	return &abcitypes.FinalizeBlockResponse{
 		TxResults: txs,
+		AppHash:   app.AppHash,
 	}, nil
 }

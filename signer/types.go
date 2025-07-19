@@ -1,5 +1,10 @@
 package signer
 
+import (
+	abcitypes "github.com/cometbft/cometbft/abci/types"
+	"github.com/dgraph-io/badger/v4"
+)
+
 const (
 	// Invalid Format
 	ERRORCODEInvalidFormat = 1
@@ -9,22 +14,12 @@ const (
 	ERRORCODEInvalidDBEntry = 3
 )
 
-type DBEntry struct {
-	Key   []byte `json:"key"`
-	Value Entry
-}
+var _ abcitypes.Application = (*App)(nil)
 
-type Entry struct {
-	RequestedHeight int64       `json:"requested_height"`
-	PubKey          []byte      `json:"pubkey"`
-	ChainID         string      `json:"chain_id"`
-	BlockHash       []byte      `json:"block_hash"`
-	SignedState     SignedState `json:"signed_state"`
-}
-
-type SignedState struct {
-	SignedHeight  int64  `json:"signed_height"`
-	SignedRound   int64  `json:"signed_round"`
-	SignedStep    string `json:"signed_step"`
-	VoteSignature []byte `json:"signature"`
+type App struct {
+	db           *badger.DB
+	onGoingBlock *badger.Txn
+	AppHeight    int64
+	AppHash      []byte
+	BlockTxs     [][]byte
 }

@@ -1,26 +1,39 @@
 package signer
 
 import (
+	//"cometkms/sighandler"
 	"context"
 	"errors"
+	"log"
+	"strconv"
+
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/dgraph-io/badger/v4"
-	"log"
 )
 
 func NewSigner(db *badger.DB) *App {
-	return &App{db: db}
-}
+	app := &App{
+		db:        db,
+		AppHeight: 0,
+		AppHash:   []byte{},
+		BlockTxs:  [][]byte{},
+	}
 
-var _ abcitypes.Application = (*App)(nil)
-
-type App struct {
-	db           *badger.DB
-	onGoingBlock *badger.Txn
+	var err error
+	app.AppHeight, app.AppHash, err = app.LoadMetadata()
+	if err != nil {
+		log.Printf("Warning: failed to load metadata: %v", err)
+	}
+	return app
 }
 
 func (app *App) Info(_ context.Context, info *abcitypes.InfoRequest) (*abcitypes.InfoResponse, error) {
-	return &abcitypes.InfoResponse{}, nil
+	log.Printf("App Info: height=%d, hash=%x", app.AppHeight, app.AppHash)
+	return &abcitypes.InfoResponse{
+		LastBlockHeight:  app.AppHeight,
+		LastBlockAppHash: app.AppHash,
+		Data:             "CometKMS Signer Application",
+	}, nil
 }
 
 func (app *App) Query(_ context.Context, req *abcitypes.QueryRequest) (*abcitypes.QueryResponse, error) {
@@ -53,6 +66,7 @@ func (app *App) InitChain(_ context.Context, chain *abcitypes.InitChainRequest) 
 }
 
 func (app *App) PrepareProposal(_ context.Context, proposal *abcitypes.PrepareProposalRequest) (*abcitypes.PrepareProposalResponse, error) {
+	//go sighandler.TestTx(proposal.Height)
 	return &abcitypes.PrepareProposalResponse{Txs: proposal.Txs}, nil
 }
 
@@ -84,6 +98,24 @@ func (app *App) VerifyVoteExtension(_ context.Context, verify *abcitypes.VerifyV
 	return &abcitypes.VerifyVoteExtensionResponse{}, nil
 }
 
-func (app App) Commit(_ context.Context, commit *abcitypes.CommitRequest) (*abcitypes.CommitResponse, error) {
-	return &abcitypes.CommitResponse{}, app.onGoingBlock.Commit()
+// LoadMetadata loads the application metadata from the database.
+// It retrieves the application appHeight and appHash from the database.
+func (app *App) LoadMetadata() (int64, []byte, error) {
+	var height int64
+	var hash []byte
+	err := app.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte("meta:app_height"))
+		if err == nil {
+			val, _ := item.ValueCopy(nil)
+			height, _ = strconv.ParseInt(string(val), 10, 64)
+		}
+
+		item, err = txn.Get([]byte("meta:app_hash"))
+		if err == nil {
+			hash, _ = item.ValueCopy(nil)
+		}
+
+		return nil
+	})
+	return height, hash, err
 }

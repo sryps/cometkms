@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cometkms/sigclient"
 	"cometkms/signer"
 	"context"
 	"flag"
@@ -13,6 +14,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	cfg "github.com/cometbft/cometbft/config"
 	cmtflags "github.com/cometbft/cometbft/libs/cli/flags"
@@ -35,6 +37,7 @@ func main() {
 	}
 
 	config := cfg.DefaultConfig()
+
 	config.SetRoot(homeDir)
 	viper.SetConfigFile(fmt.Sprintf("%s/%s", homeDir, "config/config.toml"))
 
@@ -47,6 +50,10 @@ func main() {
 	if err := config.ValidateBasic(); err != nil {
 		log.Fatalf("Invalid configuration data: %v", err)
 	}
+	config.Consensus.TimeoutCommit = time.Second * 10
+	config.Consensus.CreateEmptyBlocks = false
+	config.Consensus.CreateEmptyBlocksInterval = 0
+
 	dbPath := filepath.Join(homeDir, "badger")
 	db, err := badger.Open(badger.DefaultOptions(dbPath))
 
@@ -60,6 +67,10 @@ func main() {
 	}()
 
 	app := signer.NewSigner(db)
+	if err != nil {
+		log.Fatalf("failed to load metadata: %v", err)
+	}
+	log.Printf("Loaded metadata: height=%d, hash=%x", app.AppHeight, app.AppHash)
 
 	pv := privval.LoadFilePV(
 		config.PrivValidatorKeyFile(),
@@ -94,6 +105,48 @@ func main() {
 		log.Fatalf("Creating node: %v", err)
 	}
 
+	// Setup the remote signer client
+	var addr string
+	var keyFilePath string
+	var help string
+	addr = "tcp://127.0.0.1:12345" // Default address
+	keyFilePath = "priv_validator_key.json"
+	if os.Getenv("SIGNER_ADDR") != "" {
+		addr = os.Getenv("SIGNER_ADDR")
+	}
+	if os.Getenv("SIGNER_KEY_FILE") != "" {
+		keyFilePath = os.Getenv("SIGNER_KEY_FILE")
+	}
+
+	// If help is requested, show usage and exit
+	if help != "" {
+		flag.Usage()
+		return
+	}
+
+	// Validate required flags
+	if addr == "" {
+		log.Fatal("Node address is required - use -addr flag (example: tcp://127.0.0.1:12345)")
+	}
+	// Load the private key from the specified file
+	log.Printf("Loading private key from %s", keyFilePath)
+	privkey, _, err := sigclient.LoadKeyFromFile(keyFilePath)
+	if err != nil {
+		log.Fatalf("Failed to load key: %v", err)
+	}
+
+	s, err := sigclient.SigClient(addr, privkey, keyFilePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Start the remote signer
+	go func() {
+		log.Printf("Starting remote signer client at %s", addr)
+		if err := s.Run(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	node.Start()
 	defer func() {
 		node.Stop()
@@ -103,4 +156,5 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
+
 }
