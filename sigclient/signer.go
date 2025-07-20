@@ -72,7 +72,7 @@ func (s *SimpleSigner) handleRequest(msg *pbprivval.Message) pbprivval.Message {
 
 			}
 		} else {
-			// TODO: Fix: don't pass error if this node is the leader
+			// TODO: Fix: don't pass error if this node is not the leader
 			// The logic should be dealt with on Message_PubKeyRequest as it wont even ask for a signature if not a validator
 			// Current logic is just for testing purposes
 			return pbprivval.Message{
