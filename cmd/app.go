@@ -10,9 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	"github.com/cometbft/cometbft/p2p"
@@ -33,7 +31,7 @@ func init() {
 	flag.StringVar(&homeDir, "cmt-home", "", "Path to the CometBFT config directory (if empty, uses $HOME/.cometbft)")
 }
 
-func RunApp() {
+func RunApp(ctx context.Context) {
 	// Parse command line flags
 	flag.Parse()
 	if homeDir == "" {
@@ -58,10 +56,14 @@ func RunApp() {
 	if err := config.ValidateBasic(); err != nil {
 		log.Fatalf("Invalid configuration data: %v", err)
 	}
-	config.Consensus.TimeoutCommit = time.Millisecond * 1000
-	config.Consensus.CreateEmptyBlocks = false
-	//config.Consensus.TimeoutPropose = time.Hour * 24
+
+	//// Setting configurations for the CometBFT node
+	// Should only allow one transaction in the mempool.
+	// Each tx is the last_signed_state, and should trigger a new block with create_empty_blocks=false
 	config.Mempool.Size = 1
+	config.Consensus.CreateEmptyBlocks = false
+	config.Consensus.TimeoutCommit = time.Millisecond * 1000
+	config.P2P.AllowDuplicateIP = true
 
 	// Set the home directory for the BadgerDB AppState database
 	dbPath := filepath.Join(homeDir, "badger")
@@ -156,21 +158,20 @@ func RunApp() {
 
 	// Start the remote signer application
 	log.Printf("Starting remote signer client at %s", addr)
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
 	go s.Run(ctx)
 	log.Printf("Remote signer client started successfully")
 
 	// Start the CometBFT node
-	node.Start()
+	if err := node.Start(); err != nil {
+		log.Fatalf("Starting node: %v", err)
+	}
 	defer func() {
 		node.Stop()
 		node.Wait()
 	}()
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
+	<-ctx.Done()
+	log.Println("Received shutdown signal, stopping all services...")
 }
 
 func InitCometBFT(homedir string) error {

@@ -67,6 +67,7 @@ func (app *App) InitChain(_ context.Context, chain *abcitypes.RequestInitChain) 
 }
 
 func (app *App) PrepareProposal(_ context.Context, proposal *abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
+	log.Printf("I am the proposer for height %d with public key %s", proposal.Height, state.ProposerPubKey)
 	state.Proposer.Store(state.ProposerStatus{
 		IsProposer: true,
 		Height:     proposal.Height,

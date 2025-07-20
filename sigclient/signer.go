@@ -3,6 +3,7 @@ package sigclient
 import (
 	"cometkms/state"
 	"io"
+	"log"
 	"net"
 
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
@@ -52,6 +53,7 @@ func (s *SimpleSigner) handleRequest(msg *pbprivval.Message) pbprivval.Message {
 			// Check for double sign attempts before handling the sign vote request
 			dsCheck := s.isDoubleSignAttempt(req.SignVoteRequest)
 			if !dsCheck {
+				log.Printf("I am no longer the proposer")
 				state.Proposer.Store(state.ProposerStatus{
 					IsProposer: false,
 					Height:     req.SignVoteRequest.Vote.Height,
@@ -70,11 +72,14 @@ func (s *SimpleSigner) handleRequest(msg *pbprivval.Message) pbprivval.Message {
 
 			}
 		} else {
+			// TODO: Fix: don't pass error if this node is the leader
+			// The logic should be dealt with on Message_PubKeyRequest as it wont even ask for a signature if not a validator
+			// Current logic is just for testing purposes
 			return pbprivval.Message{
 				Sum: &pbprivval.Message_SignedVoteResponse{
 					SignedVoteResponse: &pbprivval.SignedVoteResponse{
 						Error: &pbprivval.RemoteSignerError{
-							Description: "This node is the proposer and should not sign votes",
+							Description: "This node is the leader and should not sign votes",
 						},
 					},
 				},
