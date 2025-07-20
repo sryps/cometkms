@@ -1,9 +1,27 @@
-package types
+package state
 
 import (
-	pbtypes "github.com/cometbft/cometbft/proto/tendermint/types"
+	"sync/atomic"
 	"time"
+
+	pbtypes "github.com/cometbft/cometbft/proto/tendermint/types"
 )
+
+var ProposerPubKey []byte
+
+type ProposerStatus struct {
+	IsProposer bool
+	Height     int64
+}
+
+var Proposer atomic.Value
+
+func init() {
+	Proposer.Store(ProposerStatus{
+		IsProposer: false,
+		Height:     0,
+	})
+}
 
 type DBEntry struct {
 	Key   string `json:"key"`
@@ -12,19 +30,19 @@ type DBEntry struct {
 
 type Entry struct {
 	RequestedHeight int64       `json:"requested_height"`
-	PubKey          []byte      `json:"pubkey"`
-	LastBlockSigner string      `json:"last_block_signer"`
+	ProposerPubKey  []byte      `json:"pubkey"`
 	ChainID         string      `json:"chain_id"`
 	BlockHash       []byte      `json:"block_hash"`
 	SignedState     SignedState `json:"signed_state"`
 }
 
 type SignedState struct {
-	SignedHeight  int64                 `json:"signed_height"`
-	SignedRound   int32                 `json:"signed_round"`
-	SignedStep    pbtypes.SignedMsgType `json:"signed_step"`     // 0: unknown, 1: prevote, 2: precommit, 32: proposal
-	SignedStepStr string                `json:"signed_step_str"` // human-readable type
-	VoteSignature []byte                `json:"signature"`
+	ValidatorAddress []byte                `json:"validator_address"`
+	SignedHeight     int64                 `json:"signed_height"`
+	SignedRound      int32                 `json:"signed_round"`
+	SignedStep       pbtypes.SignedMsgType `json:"signed_step"`     // 0: unknown, 1: prevote, 2: precommit, 32: proposal
+	SignedStepStr    string                `json:"signed_step_str"` // human-readable type
+	VoteSignature    []byte                `json:"signature"`
 }
 
 // SigningState is a struct that holds the state of the last signed state.

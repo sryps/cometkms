@@ -1,37 +1,38 @@
 package sigclient
 
 import (
-	"cometkms/types"
+	"cometkms/state"
 	"context"
 	"encoding/json"
 	"fmt"
-	cmthttp "github.com/cometbft/cometbft/rpc/client/http"
 	"log"
+
+	cmthttp "github.com/cometbft/cometbft/rpc/client/http"
 )
 
-func (s *SimpleSigner) SaveState(vote *types.SigningState) error {
+func (s *SimpleSigner) SaveState(vote *state.SigningState, chainID string) error {
 	// 1. Set up client to local CometBFT node
-	client, err := cmthttp.New("http://localhost:2657", "/websocket")
+	client, err := cmthttp.New(s.RPCaddr, "/websocket")
 	if err != nil {
 		log.Printf("failed to connect to RPC: %x", err)
 	}
 
 	// Key format: "height:round:type(step)"
 	key := fmt.Sprintf("%d:%d:%v", vote.Height, vote.Round, vote.Type)
-	tx := types.DBEntry{
+	tx := state.DBEntry{
 		Key: key,
-		Value: types.Entry{
+		Value: state.Entry{
 			RequestedHeight: vote.Height,
-			PubKey:          []byte("TODO"),
-			LastBlockSigner: "TODO",
-			ChainID:         "TODO",
+			ProposerPubKey:  state.ProposerPubKey,
+			ChainID:         chainID,
 			BlockHash:       vote.BlockID.BlockHash,
-			SignedState: types.SignedState{
-				SignedHeight:  vote.Height,
-				SignedRound:   vote.Round,
-				SignedStep:    vote.Type,
-				SignedStepStr: vote.TypeStr,
-				VoteSignature: vote.Signature,
+			SignedState: state.SignedState{
+				ValidatorAddress: vote.ValidatorAddress,
+				SignedHeight:     vote.Height,
+				SignedRound:      vote.Round,
+				SignedStep:       vote.Type,
+				SignedStepStr:    vote.TypeStr,
+				VoteSignature:    vote.Signature,
 			},
 		},
 	}
@@ -42,9 +43,9 @@ func (s *SimpleSigner) SaveState(vote *types.SigningState) error {
 		log.Printf("failed to marshal tx: %x", err)
 	}
 
+	// 4. Broadcast the transaction
 	log.Printf("Prepared transaction: Height=%d, Round=%d, Type=%d, Key=%s",
 		vote.Height, vote.Round, vote.Type, key)
-	// 4. Broadcast the transaction
 	res, err := client.BroadcastTxCommit(context.Background(), txBytes)
 	if err != nil {
 		log.Printf("broadcast failed: %x", err)
@@ -56,8 +57,8 @@ func (s *SimpleSigner) SaveState(vote *types.SigningState) error {
 }
 
 // readState reads the signer state from the file.
-func (s *SimpleSigner) ReadState() (*types.SigningState, error) {
+func (s *SimpleSigner) ReadState() (*state.SigningState, error) {
 	// Read the signer state from the file
-	var state *types.SigningState
+	var state *state.SigningState
 	return state, nil
 }

@@ -1,6 +1,7 @@
 package sigclient
 
 import (
+	"cometkms/state"
 	"io"
 	"net"
 
@@ -45,18 +46,35 @@ func (s *SimpleSigner) handleRequest(msg *pbprivval.Message) pbprivval.Message {
 
 	// Handle Vote Signing Requests
 	case *pbprivval.Message_SignVoteRequest:
-		// TODO: Check if this node is supposed to sign this vote and hook to ProcessProposal
+		status := state.Proposer.Load().(state.ProposerStatus)
 
-		// Check for double sign attempts before handling the sign vote request
-		dsCheck := s.isDoubleSignAttempt(req.SignVoteRequest)
-		if !dsCheck {
-			return s.handleSignVoteRequest(req.SignVoteRequest)
+		if !status.IsProposer {
+			// Check for double sign attempts before handling the sign vote request
+			dsCheck := s.isDoubleSignAttempt(req.SignVoteRequest)
+			if !dsCheck {
+				state.Proposer.Store(state.ProposerStatus{
+					IsProposer: false,
+					Height:     req.SignVoteRequest.Vote.Height,
+				})
+				return s.handleSignVoteRequest(req.SignVoteRequest)
+			} else {
+				return pbprivval.Message{
+					Sum: &pbprivval.Message_SignedVoteResponse{
+						SignedVoteResponse: &pbprivval.SignedVoteResponse{
+							Error: &pbprivval.RemoteSignerError{
+								Description: "Double sign attempt detected",
+							},
+						},
+					},
+				}
+
+			}
 		} else {
 			return pbprivval.Message{
 				Sum: &pbprivval.Message_SignedVoteResponse{
 					SignedVoteResponse: &pbprivval.SignedVoteResponse{
 						Error: &pbprivval.RemoteSignerError{
-							Description: "Double sign attempt detected",
+							Description: "This node is the proposer and should not sign votes",
 						},
 					},
 				},

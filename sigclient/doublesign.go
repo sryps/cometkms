@@ -2,9 +2,10 @@ package sigclient
 
 import (
 	"fmt"
+	"log"
+
 	pbprivval "github.com/cometbft/cometbft/proto/tendermint/privval"
 	"github.com/dgraph-io/badger/v4"
-	"log"
 )
 
 func (s *SimpleSigner) isDoubleSignAttempt(req *pbprivval.SignVoteRequest) bool {
@@ -30,7 +31,7 @@ func (s *SimpleSigner) isDoubleSignAttempt(req *pbprivval.SignVoteRequest) bool 
 
 	if err != nil {
 		// You may want to log this or handle it differently
-		fmt.Printf("Badger view error: %v\n", err)
+		log.Fatalf("Badger view error while checking for double sign attempt: %v\n", err)
 		return false
 	}
 

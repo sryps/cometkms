@@ -2,7 +2,7 @@ package signer
 
 import (
 	"bytes"
-	"cometkms/types"
+	"cometkms/state"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -57,8 +57,8 @@ func (app *App) txExists(tx []byte) bool {
 	return exists
 }
 
-func UnmarshalDBEntry(data []byte) (*types.DBEntry, error) {
-	var entry types.DBEntry
+func UnmarshalDBEntry(data []byte) (*state.DBEntry, error) {
+	var entry state.DBEntry
 	err := json.Unmarshal(data, &entry)
 	if err != nil {
 		return nil, err

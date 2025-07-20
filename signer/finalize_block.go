@@ -5,8 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"log"
+
+	abcitypes "github.com/cometbft/cometbft/abci/types"
 )
 
 func (app *App) FinalizeBlock(_ context.Context, req *abcitypes.RequestFinalizeBlock) (*abcitypes.ResponseFinalizeBlock, error) {
@@ -27,7 +28,7 @@ func (app *App) FinalizeBlock(_ context.Context, req *abcitypes.RequestFinalizeB
 			}
 			key := unmarshaledTx.Key
 			value := unmarshaledTx.Value
-			keyBytes := []byte(fmt.Sprintf("%x", key))
+			keyBytes := fmt.Appendf([]byte{}, "%s", key)
 			valueBytes, err := json.Marshal(value)
 			if err != nil {
 				log.Fatalf("failed to marshal value: %v", err)
@@ -54,8 +55,11 @@ func (app *App) FinalizeBlock(_ context.Context, req *abcitypes.RequestFinalizeB
 			}
 		}
 	}
-	hashStrToBytes := []byte(fmt.Sprintf("testhash"))
+
+	//TODO: Generate proper app hash
+	hashStrToBytes := fmt.Appendf([]byte{}, "test_app_hash")
 	app.AppHash = hashStrToBytes
+
 	log.Printf("FinalizeBlock: computed AppHash = %X", app.AppHash)
 
 	return &abcitypes.ResponseFinalizeBlock{

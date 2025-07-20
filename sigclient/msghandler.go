@@ -1,10 +1,11 @@
 package sigclient
 
 import (
-	"cometkms/types"
+	"cometkms/state"
+	"log"
+
 	pbprivval "github.com/cometbft/cometbft/proto/tendermint/privval"
 	cmttypes "github.com/cometbft/cometbft/types"
-	"log"
 )
 
 func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbprivval.Message {
@@ -27,14 +28,14 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 	}
 
 	// Assign state struct with requested vote information
-	state := &types.SigningState{
+	state := &state.SigningState{
 		Type:    req.Vote.Type,
 		TypeStr: req.Vote.Type.String(),
 		Height:  req.Vote.Height,
 		Round:   req.Vote.Round,
-		BlockID: types.BlockID{
+		BlockID: state.BlockID{
 			BlockHash: req.Vote.BlockID.Hash,
-			PartSetHeader: types.PartSetHeader{
+			PartSetHeader: state.PartSetHeader{
 				Hash:  req.Vote.BlockID.PartSetHeader.Hash,
 				Total: req.Vote.BlockID.PartSetHeader.Total,
 			},
@@ -52,7 +53,7 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 		state.Round,
 	)
 	// Write the vote to the state file
-	if err := s.SaveState(state); err != nil {
+	if err := s.SaveState(state, req.ChainId); err != nil {
 		log.Fatalf("Failed to save signer state: %v", err)
 	}
 

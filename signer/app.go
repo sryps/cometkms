@@ -2,6 +2,7 @@ package signer
 
 import (
 	//"cometkms/sighandler"
+	"cometkms/state"
 	"context"
 	"errors"
 	"log"
@@ -66,9 +67,10 @@ func (app *App) InitChain(_ context.Context, chain *abcitypes.RequestInitChain) 
 }
 
 func (app *App) PrepareProposal(_ context.Context, proposal *abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
-	// TODO: Need to have a hook here to make sure only the proposer signs the msg request
-	// Check last signed state from db
-
+	state.Proposer.Store(state.ProposerStatus{
+		IsProposer: true,
+		Height:     proposal.Height,
+	})
 	//go sighandler.TestTx(proposal.Height)
 	return &abcitypes.ResponsePrepareProposal{Txs: proposal.Txs}, nil
 }
