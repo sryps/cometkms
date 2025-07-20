@@ -9,7 +9,7 @@ import (
 	"log"
 )
 
-func (app *App) FinalizeBlock(_ context.Context, req *abcitypes.FinalizeBlockRequest) (*abcitypes.FinalizeBlockResponse, error) {
+func (app *App) FinalizeBlock(_ context.Context, req *abcitypes.RequestFinalizeBlock) (*abcitypes.ResponseFinalizeBlock, error) {
 	var txs = make([]*abcitypes.ExecTxResult, len(req.Txs))
 
 	app.onGoingBlock = app.db.NewTransaction(true)
@@ -57,7 +57,7 @@ func (app *App) FinalizeBlock(_ context.Context, req *abcitypes.FinalizeBlockReq
 	app.AppHash = req.GetHash()
 	log.Printf("FinalizeBlock: computed AppHash = %X", app.AppHash)
 
-	return &abcitypes.FinalizeBlockResponse{
+	return &abcitypes.ResponseFinalizeBlock{
 		TxResults: txs,
 		AppHash:   app.AppHash,
 	}, nil

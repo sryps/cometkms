@@ -50,9 +50,12 @@ func main() {
 	if err := config.ValidateBasic(); err != nil {
 		log.Fatalf("Invalid configuration data: %v", err)
 	}
-	config.Consensus.TimeoutCommit = time.Second * 10
+	config.Consensus.TimeoutCommit = time.Millisecond * 1000
 	config.Consensus.CreateEmptyBlocks = false
-	config.Consensus.CreateEmptyBlocksInterval = 0
+	config.Mempool.Size = 1
+
+	config.RPC.ListenAddress = "tcp://0.0.0.0:16657"
+	config.P2P.ListenAddress = "tcp://0.0.0.0:16656"
 
 	dbPath := filepath.Join(homeDir, "badger")
 	db, err := badger.Open(badger.DefaultOptions(dbPath))
@@ -90,7 +93,6 @@ func main() {
 	}
 
 	node, err := nm.NewNode(
-		context.Background(),
 		config,
 		pv,
 		nodeKey,
@@ -135,17 +137,17 @@ func main() {
 		log.Fatalf("Failed to load key: %v", err)
 	}
 
-	s, err := sigclient.SigClient(addr, privkey, keyFilePath)
+	s, err := sigclient.SigClient(addr, privkey, keyFilePath, db)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// Start the remote signer
-	go func() {
-		log.Printf("Starting remote signer client at %s", addr)
-		if err := s.Run(); err != nil {
-			log.Fatal(err)
-		}
-	}()
+	log.Printf("Starting remote signer client at %s", addr)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+	go s.Run(ctx)
+
+	log.Printf("Remote signer client started successfully")
 
 	node.Start()
 	defer func() {

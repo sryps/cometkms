@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"encoding/base64"
-	pbcrypto "github.com/cometbft/cometbft/api/cometbft/crypto/v1"
 	"github.com/cometbft/cometbft/crypto/ed25519"
+	pbcrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 )
 
 type KeyPair struct {

@@ -4,30 +4,27 @@ import (
 	"io"
 	"net"
 
-	pbprivval "github.com/cometbft/cometbft/api/cometbft/privval/v1"
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	cmtencoding "github.com/cometbft/cometbft/crypto/encoding"
 	"github.com/cometbft/cometbft/libs/protoio"
+	pbprivval "github.com/cometbft/cometbft/proto/tendermint/privval"
+	"github.com/dgraph-io/badger/v4"
 	"github.com/golang/protobuf/proto"
 )
 
 // NewSimpleSigner initializes a signer with address and key.
-func SigClient(addr string, privKey cmted25519.PrivKey, keyFilePath string) (*SimpleSigner, error) {
+func SigClient(addr string, privKey cmted25519.PrivKey, keyFilePath string, db *badger.DB) (*SimpleSigner, error) {
 	pubKey, err := cmtencoding.PubKeyToProto(privKey.PubKey())
 	if err != nil {
 		return nil, err
 	}
 
-	pubKeyStr, err := PublicKeyToString(pubKey)
 	return &SimpleSigner{
-		addr:    addr,
-		privKey: privKey,
-		PubKey: PubKey{
-			PubKeyType:    pubKey,
-			PubKeyBytes:   pubKey.GetEd25519(),
-			PubKeyTypeStr: pubKeyStr,
-		},
+		addr:        addr,
+		privKey:     privKey,
+		PubKey:      pubKey,
 		keyFilePath: keyFilePath,
+		db:          db,
 	}, nil
 }
 
@@ -40,14 +37,15 @@ func (s *SimpleSigner) handleRequest(msg *pbprivval.Message) pbprivval.Message {
 		return pbprivval.Message{
 			Sum: &pbprivval.Message_PubKeyResponse{
 				PubKeyResponse: &pbprivval.PubKeyResponse{
-					PubKeyType:  s.PubKey.PubKeyTypeStr,
-					PubKeyBytes: s.PubKey.PubKeyBytes,
+					PubKey: s.PubKey,
 				},
 			},
 		}
 
 	// Handle Vote Signing Requests
 	case *pbprivval.Message_SignVoteRequest:
+		// TODO: Check if this node is supposed to sign this vote and hook to ProcessProposal
+
 		// Check for double sign attempts before handling the sign vote request
 		dsCheck := s.isDoubleSignAttempt(req.SignVoteRequest)
 		if !dsCheck {
@@ -86,6 +84,7 @@ func readMsg(reader io.Reader, maxReadSize int) (msg pbprivval.Message, err erro
 	}
 	protoReader := protoio.NewDelimitedReader(reader, maxReadSize)
 	_, err = protoReader.ReadMsg(&msg)
+
 	return msg, err
 }
 

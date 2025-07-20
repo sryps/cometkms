@@ -1,29 +1,38 @@
 package sigclient
 
 import (
-	pbprivval "github.com/cometbft/cometbft/api/cometbft/privval/v1"
+	"fmt"
+	pbprivval "github.com/cometbft/cometbft/proto/tendermint/privval"
+	"github.com/dgraph-io/badger/v4"
 	"log"
 )
 
 func (s *SimpleSigner) isDoubleSignAttempt(req *pbprivval.SignVoteRequest) bool {
+	heightStr := fmt.Sprintf("%d", req.Vote.Height)
+	roundStr := fmt.Sprintf("%d", req.Vote.Round)
+	stepStr := req.Vote.Type.String()
+	dbKey := []byte(heightStr + ":" + roundStr + ":" + stepStr)
+	log.Printf("Checking db key for double sign: %s", dbKey)
 
-	// Load the last state from the file
-	var lastState *SigningState
-	lastState, err := s.ReadState()
+	var exists bool
+
+	err := s.db.View(func(txn *badger.Txn) error {
+		_, err := txn.Get(dbKey)
+		if err == nil {
+			exists = true
+		} else if err == badger.ErrKeyNotFound {
+			exists = false
+		} else {
+			return err
+		}
+		return nil
+	})
+
 	if err != nil {
-		log.Fatalf("Failed to read signer state: %v", err)
+		// You may want to log this or handle it differently
+		fmt.Printf("Badger view error: %v\n", err)
+		return false
 	}
 
-	// check if height,round and type of the last vote are greater than or equal to the current request
-	if lastState.Height >= req.Vote.Height &&
-		lastState.Round >= req.Vote.Round &&
-		lastState.Type >= req.Vote.Type {
-		log.Printf("DOUBLE SIGN ATTEMPT for vote at height %d, round %d, block ID %X\n",
-			req.Vote.Height,
-			req.Vote.Round,
-			req.Vote.BlockID.Hash,
-		)
-		return true
-	}
-	return false
+	return exists
 }

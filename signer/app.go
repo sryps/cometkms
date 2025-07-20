@@ -27,17 +27,17 @@ func NewSigner(db *badger.DB) *App {
 	return app
 }
 
-func (app *App) Info(_ context.Context, info *abcitypes.InfoRequest) (*abcitypes.InfoResponse, error) {
+func (app *App) Info(_ context.Context, info *abcitypes.RequestInfo) (*abcitypes.ResponseInfo, error) {
 	log.Printf("App Info: height=%d, hash=%x", app.AppHeight, app.AppHash)
-	return &abcitypes.InfoResponse{
+	return &abcitypes.ResponseInfo{
 		LastBlockHeight:  app.AppHeight,
 		LastBlockAppHash: app.AppHash,
 		Data:             "CometKMS Signer Application",
 	}, nil
 }
 
-func (app *App) Query(_ context.Context, req *abcitypes.QueryRequest) (*abcitypes.QueryResponse, error) {
-	resp := abcitypes.QueryResponse{Key: req.Data}
+func (app *App) Query(_ context.Context, req *abcitypes.RequestQuery) (*abcitypes.ResponseQuery, error) {
+	resp := abcitypes.ResponseQuery{Key: req.Data}
 
 	dbErr := app.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(req.Data)
@@ -61,41 +61,44 @@ func (app *App) Query(_ context.Context, req *abcitypes.QueryRequest) (*abcitype
 	return &resp, nil
 }
 
-func (app *App) InitChain(_ context.Context, chain *abcitypes.InitChainRequest) (*abcitypes.InitChainResponse, error) {
-	return &abcitypes.InitChainResponse{}, nil
+func (app *App) InitChain(_ context.Context, chain *abcitypes.RequestInitChain) (*abcitypes.ResponseInitChain, error) {
+	return &abcitypes.ResponseInitChain{}, nil
 }
 
-func (app *App) PrepareProposal(_ context.Context, proposal *abcitypes.PrepareProposalRequest) (*abcitypes.PrepareProposalResponse, error) {
+func (app *App) PrepareProposal(_ context.Context, proposal *abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
+	// TODO: Need to have a hook here to make sure only the proposer signs the msg request
+	// Check last signed state from db
+
 	//go sighandler.TestTx(proposal.Height)
-	return &abcitypes.PrepareProposalResponse{Txs: proposal.Txs}, nil
+	return &abcitypes.ResponsePrepareProposal{Txs: proposal.Txs}, nil
 }
 
-func (app *App) ProcessProposal(_ context.Context, proposal *abcitypes.ProcessProposalRequest) (*abcitypes.ProcessProposalResponse, error) {
-	return &abcitypes.ProcessProposalResponse{Status: abcitypes.PROCESS_PROPOSAL_STATUS_ACCEPT}, nil
+func (app *App) ProcessProposal(_ context.Context, proposal *abcitypes.RequestProcessProposal) (*abcitypes.ResponseProcessProposal, error) {
+	return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_ACCEPT}, nil
 }
 
-func (app *App) ListSnapshots(_ context.Context, snapshots *abcitypes.ListSnapshotsRequest) (*abcitypes.ListSnapshotsResponse, error) {
-	return &abcitypes.ListSnapshotsResponse{}, nil
+func (app *App) ListSnapshots(_ context.Context, snapshots *abcitypes.RequestListSnapshots) (*abcitypes.ResponseListSnapshots, error) {
+	return &abcitypes.ResponseListSnapshots{}, nil
 }
 
-func (app *App) OfferSnapshot(_ context.Context, snapshot *abcitypes.OfferSnapshotRequest) (*abcitypes.OfferSnapshotResponse, error) {
-	return &abcitypes.OfferSnapshotResponse{}, nil
+func (app *App) OfferSnapshot(_ context.Context, snapshot *abcitypes.RequestOfferSnapshot) (*abcitypes.ResponseOfferSnapshot, error) {
+	return &abcitypes.ResponseOfferSnapshot{}, nil
 }
 
-func (app *App) LoadSnapshotChunk(_ context.Context, chunk *abcitypes.LoadSnapshotChunkRequest) (*abcitypes.LoadSnapshotChunkResponse, error) {
-	return &abcitypes.LoadSnapshotChunkResponse{}, nil
+func (app *App) LoadSnapshotChunk(_ context.Context, chunk *abcitypes.RequestLoadSnapshotChunk) (*abcitypes.ResponseLoadSnapshotChunk, error) {
+	return &abcitypes.ResponseLoadSnapshotChunk{}, nil
 }
 
-func (app *App) ApplySnapshotChunk(_ context.Context, chunk *abcitypes.ApplySnapshotChunkRequest) (*abcitypes.ApplySnapshotChunkResponse, error) {
-	return &abcitypes.ApplySnapshotChunkResponse{Result: abcitypes.APPLY_SNAPSHOT_CHUNK_RESULT_ACCEPT}, nil
+func (app *App) ApplySnapshotChunk(_ context.Context, chunk *abcitypes.RequestApplySnapshotChunk) (*abcitypes.ResponseApplySnapshotChunk, error) {
+	return &abcitypes.ResponseApplySnapshotChunk{}, nil
 }
 
-func (app App) ExtendVote(_ context.Context, extend *abcitypes.ExtendVoteRequest) (*abcitypes.ExtendVoteResponse, error) {
-	return &abcitypes.ExtendVoteResponse{}, nil
+func (app *App) VerifyVoteExtension(_ context.Context, verify *abcitypes.RequestVerifyVoteExtension) (*abcitypes.ResponseVerifyVoteExtension, error) {
+	return &abcitypes.ResponseVerifyVoteExtension{}, nil
 }
 
-func (app *App) VerifyVoteExtension(_ context.Context, verify *abcitypes.VerifyVoteExtensionRequest) (*abcitypes.VerifyVoteExtensionResponse, error) {
-	return &abcitypes.VerifyVoteExtensionResponse{}, nil
+func (app *App) ExtendVote(_ context.Context, extend *abcitypes.RequestExtendVote) (*abcitypes.ResponseExtendVote, error) {
+	return &abcitypes.ResponseExtendVote{}, nil
 }
 
 // LoadMetadata loads the application metadata from the database.

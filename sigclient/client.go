@@ -2,42 +2,33 @@ package sigclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	pbprivval "github.com/cometbft/cometbft/api/cometbft/privval/v1"
 	cmtp2pconn "github.com/cometbft/cometbft/p2p/conn"
+	pbprivval "github.com/cometbft/cometbft/proto/tendermint/privval"
+	"io"
 	"log"
 	"net"
 	"strings"
-	"sync"
 	"time"
 )
 
-func (s *SimpleSigner) Run() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		for {
-			select {
-			case <-ctx.Done():
-				log.Println("Context done, stopping remote signer")
-				return
-			default:
-				if err := s.ConnectAndServe(ctx); err != nil {
-					fmt.Println("connection error:", err)
-					time.Sleep(2 * time.Second)
-				}
+func (s *SimpleSigner) Run(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Context done, stopping remote signer")
+			return
+		default:
+			if err := s.ConnectAndServe(ctx); err != nil {
+				fmt.Println("connection error:", err)
+				time.Sleep(2 * time.Second)
 			}
 		}
-	}()
 
-	wg.Wait()
-	log.Println("Remote signer stopped")
-	<-ctx.Done()
-	cancel()
-	return nil
+		log.Println("Remote signer stopped")
+		<-ctx.Done()
+	}
 }
 
 func (s *SimpleSigner) ConnectAndServe(ctx context.Context) error {
@@ -50,13 +41,15 @@ func (s *SimpleSigner) ConnectAndServe(ctx context.Context) error {
 			proto, addr := ProtocolAndAddress(s.addr)
 			connRaw, err := (&net.Dialer{}).DialContext(ctx, proto, addr)
 			if err != nil {
-				return fmt.Errorf("dial failed: %w", err)
+				log.Printf("dial failed: %v", err)
+				time.Sleep(2 * time.Second) // Wait before retrying
+				continue
 			}
 			defer connRaw.Close()
 
 			conn, err := cmtp2pconn.MakeSecretConnection(connRaw, s.privKey)
 			if err != nil {
-				return fmt.Errorf("secret connection failed: %w", err)
+				log.Printf("secret connection failed: %v", err)
 			}
 			defer conn.Close()
 
@@ -72,13 +65,21 @@ func (s *SimpleSigner) ConnectAndServe(ctx context.Context) error {
 					msg := pbprivval.Message{}
 					msg, err = readMsg(conn, 1024*1024)
 					if err != nil {
-						return fmt.Errorf("read failed: %w", err)
+						if errors.Is(err, io.EOF) {
+							log.Printf("connection closed by peer (EOF), reconnecting...")
+							return nil
+						} else {
+							log.Printf("read failed: %v", err)
+						}
 					}
 
-					resp := s.handleRequest(&msg)
-					_, err := writeMessage(conn, &resp)
-					if err != nil {
-						return fmt.Errorf("write failed: %w", err)
+					if msg.Sum != nil {
+						resp := s.handleRequest(&msg)
+						_, err := writeMessage(conn, &resp)
+						if err != nil {
+							log.Printf("write failed: %v", err)
+						}
+						continue // continue to read next message
 					}
 				}
 			}

@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-func (app *App) Commit(_ context.Context, commit *abcitypes.CommitRequest) (*abcitypes.CommitResponse, error) {
+func (app *App) Commit(_ context.Context, commit *abcitypes.RequestCommit) (*abcitypes.ResponseCommit, error) {
 	app.AppHeight++
 
 	txn := app.db.NewTransaction(true)
@@ -27,5 +27,5 @@ func (app *App) Commit(_ context.Context, commit *abcitypes.CommitRequest) (*abc
 		return nil, fmt.Errorf("failed to commit: %w", err)
 	}
 	// Generate app hash — e.g., hash of height or root key
-	return &abcitypes.CommitResponse{}, nil
+	return &abcitypes.ResponseCommit{}, nil
 }

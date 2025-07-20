@@ -1,7 +1,7 @@
 package sigclient
 
 import (
-	pbprivval "github.com/cometbft/cometbft/api/cometbft/privval/v1"
+	pbprivval "github.com/cometbft/cometbft/proto/tendermint/privval"
 )
 
 func (s *SimpleSigner) returnSigningProposalError(err error) pbprivval.Message {

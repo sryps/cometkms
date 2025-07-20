@@ -11,7 +11,7 @@ import (
 
 func TestTx(height int64) {
 	// 1. Set up client to local CometBFT node
-	client, err := cmthttp.New("http://localhost:26657")
+	client, err := cmthttp.New("http://localhost:26657", "/websocket")
 	if err != nil {
 		log.Printf("failed to connect to RPC: %x", err)
 	}

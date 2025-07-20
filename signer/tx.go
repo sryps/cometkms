@@ -36,10 +36,10 @@ func (app *App) validateTx(tx []byte) (uint32, string) {
 	return code, log
 }
 
-func (app *App) CheckTx(_ context.Context, check *abcitypes.CheckTxRequest) (*abcitypes.CheckTxResponse, error) {
+func (app *App) CheckTx(_ context.Context, check *abcitypes.RequestCheckTx) (*abcitypes.ResponseCheckTx, error) {
 	var log string
 	code, log := app.validateTx(check.Tx)
-	return &abcitypes.CheckTxResponse{Code: code, Log: log}, nil
+	return &abcitypes.ResponseCheckTx{Code: code, Log: log}, nil
 }
 
 // Check if Key-Value pair already exists

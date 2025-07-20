@@ -1,8 +1,9 @@
 package sigclient
 
 import (
-	pbprivval "github.com/cometbft/cometbft/api/cometbft/privval/v1"
-	"github.com/cometbft/cometbft/types"
+	"cometkms/types"
+	pbprivval "github.com/cometbft/cometbft/proto/tendermint/privval"
+	cmttypes "github.com/cometbft/cometbft/types"
 	"log"
 )
 
@@ -10,7 +11,7 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 
 	// Sign the vote request body
 	var err error
-	signBytes := types.VoteSignBytes(req.ChainId, req.Vote)
+	signBytes := cmttypes.VoteSignBytes(req.ChainId, req.Vote)
 	req.Vote.Signature, err = s.privKey.Sign(signBytes)
 	if err != nil {
 		return s.returnSigningVoteError(err)
@@ -18,7 +19,7 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 
 	// Sign the vote extension (if present)
 	if len(req.Vote.Extension) > 0 {
-		extSignBytes := types.VoteExtensionSignBytes(req.ChainId, req.Vote)
+		extSignBytes := cmttypes.VoteExtensionSignBytes(req.ChainId, req.Vote)
 		req.Vote.ExtensionSignature, err = s.privKey.Sign(extSignBytes)
 		if err != nil {
 			return s.returnSigningVoteError(err)
@@ -26,14 +27,14 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 	}
 
 	// Assign state struct with requested vote information
-	state := &SigningState{
+	state := &types.SigningState{
 		Type:    req.Vote.Type,
 		TypeStr: req.Vote.Type.String(),
 		Height:  req.Vote.Height,
 		Round:   req.Vote.Round,
-		BlockID: BlockID{
+		BlockID: types.BlockID{
 			BlockHash: req.Vote.BlockID.Hash,
-			PartSetHeader: PartSetHeader{
+			PartSetHeader: types.PartSetHeader{
 				Hash:  req.Vote.BlockID.PartSetHeader.Hash,
 				Total: req.Vote.BlockID.PartSetHeader.Total,
 			},
@@ -45,8 +46,13 @@ func (s *SimpleSigner) handleSignVoteRequest(req *pbprivval.SignVoteRequest) pbp
 		ChainId:            req.ChainId,
 	}
 
+	log.Printf("Signer state: Type=%s, Height=%d, Round=%d",
+		state.TypeStr,
+		state.Height,
+		state.Round,
+	)
 	// Write the vote to the state file
-	if err := s.saveState(state); err != nil {
+	if err := s.SaveState(state); err != nil {
 		log.Fatalf("Failed to save signer state: %v", err)
 	}
 
@@ -78,7 +84,7 @@ func (s *SimpleSigner) handleSignProposalRequest(req *pbprivval.SignProposalRequ
 
 	// Sign the proposal
 	var err error
-	signBytes := types.ProposalSignBytes(req.ChainId, req.Proposal)
+	signBytes := cmttypes.ProposalSignBytes(req.ChainId, req.Proposal)
 	req.Proposal.Signature, err = s.privKey.Sign(signBytes)
 	if err != nil {
 		return s.returnSigningProposalError(err)
