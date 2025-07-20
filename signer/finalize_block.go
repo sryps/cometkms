@@ -54,7 +54,8 @@ func (app *App) FinalizeBlock(_ context.Context, req *abcitypes.RequestFinalizeB
 			}
 		}
 	}
-	app.AppHash = req.GetHash()
+	hashStrToBytes := []byte(fmt.Sprintf("testhash"))
+	app.AppHash = hashStrToBytes
 	log.Printf("FinalizeBlock: computed AppHash = %X", app.AppHash)
 
 	return &abcitypes.ResponseFinalizeBlock{

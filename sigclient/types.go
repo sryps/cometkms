@@ -9,6 +9,7 @@ import (
 // SimpleSigner is a struct that holds the configuration for a remote signer.
 type SimpleSigner struct {
 	addr        string
+	RPCaddr     string
 	privKey     cmted25519.PrivKey
 	PubKey      pbcrypto.PublicKey
 	keyFilePath string

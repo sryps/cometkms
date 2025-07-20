@@ -13,7 +13,7 @@ import (
 )
 
 // NewSimpleSigner initializes a signer with address and key.
-func SigClient(addr string, privKey cmted25519.PrivKey, keyFilePath string, db *badger.DB) (*SimpleSigner, error) {
+func SigClient(addr string, RPCaddr string, privKey cmted25519.PrivKey, keyFilePath string, db *badger.DB) (*SimpleSigner, error) {
 	pubKey, err := cmtencoding.PubKeyToProto(privKey.PubKey())
 	if err != nil {
 		return nil, err
@@ -21,6 +21,7 @@ func SigClient(addr string, privKey cmted25519.PrivKey, keyFilePath string, db *
 
 	return &SimpleSigner{
 		addr:        addr,
+		RPCaddr:     RPCaddr,
 		privKey:     privKey,
 		PubKey:      pubKey,
 		keyFilePath: keyFilePath,

@@ -52,10 +52,8 @@ func main() {
 	}
 	config.Consensus.TimeoutCommit = time.Millisecond * 1000
 	config.Consensus.CreateEmptyBlocks = false
+	//config.Consensus.TimeoutPropose = time.Hour * 24
 	config.Mempool.Size = 1
-
-	config.RPC.ListenAddress = "tcp://0.0.0.0:16657"
-	config.P2P.ListenAddress = "tcp://0.0.0.0:16656"
 
 	dbPath := filepath.Join(homeDir, "badger")
 	db, err := badger.Open(badger.DefaultOptions(dbPath))
@@ -109,6 +107,7 @@ func main() {
 
 	// Setup the remote signer client
 	var addr string
+	var RPCaddr string
 	var keyFilePath string
 	var help string
 	addr = "tcp://127.0.0.1:12345" // Default address
@@ -118,6 +117,11 @@ func main() {
 	}
 	if os.Getenv("SIGNER_KEY_FILE") != "" {
 		keyFilePath = os.Getenv("SIGNER_KEY_FILE")
+	}
+	if os.Getenv("SIGNER_RPC") != "" {
+		RPCaddr = os.Getenv("SIGNER_RPC")
+	} else {
+		log.Fatal("SIGNER_RPC environment variable is required, this address is for broadcasting Txs")
 	}
 
 	// If help is requested, show usage and exit
@@ -137,7 +141,7 @@ func main() {
 		log.Fatalf("Failed to load key: %v", err)
 	}
 
-	s, err := sigclient.SigClient(addr, privkey, keyFilePath, db)
+	s, err := sigclient.SigClient(addr, RPCaddr, privkey, keyFilePath, db)
 	if err != nil {
 		log.Fatal(err)
 	}

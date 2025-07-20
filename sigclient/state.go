@@ -11,7 +11,7 @@ import (
 
 func (s *SimpleSigner) SaveState(vote *types.SigningState) error {
 	// 1. Set up client to local CometBFT node
-	client, err := cmthttp.New("http://localhost:16657", "/websocket")
+	client, err := cmthttp.New("http://localhost:2657", "/websocket")
 	if err != nil {
 		log.Printf("failed to connect to RPC: %x", err)
 	}
