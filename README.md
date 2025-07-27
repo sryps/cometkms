@@ -2,10 +2,17 @@
 
 > ❗️ **Warning:** FOR DEMO AND TESTING PURPOSES ONLY
 > DO NOT USE IN PRODUCTION
+> Proof of concept for a remote signer that uses CometBFT consensus algorithm for high availability.
 
-Current Diagram:
+Current Signer Diagram:
 
-![CometKMS Architecture](CometKMS.png)
+![CometKMS Signer Architecture](CometKMS.png)
+
+Overview:
+
+![CometKMS Overview](CometKMS-overview.png)
+
+---
 
 This is under development to be a (high availability) remote signer that uses CometBFT consensus algorithm for the HA layer.
 CometBFT decides which node will sign the block requested by an external CometBFT chain and returns the signed block to the chain.
