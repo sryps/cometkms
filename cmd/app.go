@@ -5,7 +5,6 @@ import (
 	"cometkms/signer"
 	"cometkms/state"
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -25,21 +24,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var homeDir string
-
-func init() {
-	flag.StringVar(&homeDir, "cmt-home", "", "Path to the CometBFT config directory (if empty, uses $HOME/.cometbft)")
-}
-
-func RunApp(ctx context.Context) {
-	// Parse command line flags
-	flag.Parse()
-	if homeDir == "" {
-		homeDir = os.ExpandEnv("$HOME/.cometbft")
-	}
-	if err := InitCometBFT(homeDir); err != nil {
-		log.Fatalf("Failed to initialize CometBFT: %v", err)
-	}
+func RunApp(ctx context.Context, homeDir string, signerAddress string, signerRpc string, privKeyFilePath string) {
 
 	// Set up the CometBFT configuration
 	config := cfg.DefaultConfig()
@@ -57,12 +42,20 @@ func RunApp(ctx context.Context) {
 		log.Fatalf("Invalid configuration data: %v", err)
 	}
 
-	//// Setting configurations for the CometBFT node
-	// Should only allow one transaction in the mempool.
+	///////// Setting configurations for the CometBFT node
 	// Each tx is the last_signed_state, and should trigger a new block with create_empty_blocks=false
-	config.Mempool.Size = 1
 	config.Consensus.CreateEmptyBlocks = false
-	config.Consensus.TimeoutCommit = time.Millisecond * 1000
+	// Since we want blocks created on each signRequest (which generates a TX submission) it should not wait for a timeout
+	config.Consensus.TimeoutCommit = time.Millisecond * 50
+	config.Consensus.TimeoutPrevote = time.Millisecond * 50
+	config.Consensus.TimeoutPrevoteDelta = time.Hour * 24
+	config.Consensus.TimeoutPrecommit = time.Millisecond * 50
+	config.Consensus.TimeoutPrecommitDelta = time.Hour * 24
+	config.Consensus.TimeoutPropose = time.Hour * 24
+	// Since we should only every have one transaction in the mempool, we can set the size to 1
+	// It is better to fail then have FIFO mempool not include signing state TX in the correct order and block.
+	config.Mempool.Size = 1
+	// Required for local testing.
 	config.P2P.AllowDuplicateIP = true
 
 	// Set the home directory for the BadgerDB AppState database
@@ -120,44 +113,20 @@ func RunApp(ctx context.Context) {
 		log.Fatalf("Creating node: %v", err)
 	}
 
-	// Setup the remote signer client
-	var addr string
-	var keyFilePath string
-	var help string
-	addr = "tcp://127.0.0.1:12345" // Default address
-	keyFilePath = "priv_validator_key.json"
-	if os.Getenv("SIGNER_ADDR") != "" {
-		addr = os.Getenv("SIGNER_ADDR")
-	}
-	if os.Getenv("SIGNER_KEY_FILE") != "" {
-		keyFilePath = os.Getenv("SIGNER_KEY_FILE")
-	}
-
-	// If help is requested, show usage and exit
-	if help != "" {
-		flag.Usage()
-		return
-	}
-
-	// Validate required flags
-	if addr == "" {
-		log.Fatal("Node address is required - use -addr flag (example: tcp://127.0.0.1:12345)")
-	}
-
 	// Load the private key from the specified file
-	log.Printf("Loading private key from %s", keyFilePath)
-	privkey, _, err := sigclient.LoadKeyFromFile(keyFilePath)
+	privkey, _, err := sigclient.LoadKeyFromFile(privKeyFilePath)
 	if err != nil {
 		log.Fatalf("Failed to load key: %v", err)
 	}
+	log.Printf("Loaded private key from %s", privKeyFilePath)
 
-	s, err := sigclient.SigClient(addr, config.RPC.ListenAddress, privkey, keyFilePath, db)
+	s, err := sigclient.SigClient(signerAddress, config.RPC.ListenAddress, privkey, privKeyFilePath, db)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Start the remote signer application
-	log.Printf("Starting remote signer client at %s", addr)
+	log.Printf("Starting remote signer client at %s", signerAddress)
 	go s.Run(ctx)
 	log.Printf("Remote signer client started successfully")
 

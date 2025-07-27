@@ -38,8 +38,17 @@ func (app *App) Info(_ context.Context, info *abcitypes.RequestInfo) (*abcitypes
 }
 
 func (app *App) Query(_ context.Context, req *abcitypes.RequestQuery) (*abcitypes.ResponseQuery, error) {
-	resp := abcitypes.ResponseQuery{Key: req.Data}
+	log.Printf("Querying key: %s", req)
 
+	if len(req.Data) == 0 {
+		return &abcitypes.ResponseQuery{
+			Code:  1,
+			Log:   "Query key cannot be empty",
+			Value: nil,
+		}, nil
+	}
+
+	resp := abcitypes.ResponseQuery{Key: req.Data}
 	dbErr := app.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(req.Data)
 		if err != nil {
@@ -67,7 +76,7 @@ func (app *App) InitChain(_ context.Context, chain *abcitypes.RequestInitChain) 
 }
 
 func (app *App) PrepareProposal(_ context.Context, proposal *abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
-	log.Printf("I am the proposer for height %d with public key %s", proposal.Height, state.ProposerPubKey)
+	log.Printf("I am the proposer for height %d", proposal.Height)
 	state.Proposer.Store(state.ProposerStatus{
 		IsProposer: true,
 		Height:     proposal.Height,

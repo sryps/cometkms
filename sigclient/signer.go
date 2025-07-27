@@ -3,7 +3,6 @@ package sigclient
 import (
 	"cometkms/state"
 	"io"
-	"log"
 	"net"
 
 	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
@@ -53,7 +52,6 @@ func (s *SimpleSigner) handleRequest(msg *pbprivval.Message) pbprivval.Message {
 			// Check for double sign attempts before handling the sign vote request
 			dsCheck := s.isDoubleSignAttempt(req.SignVoteRequest)
 			if !dsCheck {
-				log.Printf("I am no longer the proposer")
 				state.Proposer.Store(state.ProposerStatus{
 					IsProposer: false,
 					Height:     req.SignVoteRequest.Vote.Height,

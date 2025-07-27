@@ -22,6 +22,7 @@ gaiad keys add validator1 --home $dir/gaia1 --keyring-backend test
 gaiad genesis add-genesis-account $(gaiad keys show validator1 -a --home $dir/gaia1 --keyring-backend test) 1000000000000000000000stake --home $dir/gaia1
 gaiad genesis gentx validator1 100000000000000000stake --chain-id localnet --home $dir/gaia1 --keyring-backend test
 sed -i "s|^minimum-gas-prices = \"\"|minimum-gas-prices = \"0stake\"|" $dir/gaia1/config/app.toml
+set -i 's/"timeout_commit": *"5s"/"timeout_commit": "10s"/' $dir/gaia1/config/config.toml
 
 sed -i 's/"signed_blocks_window": *"100"/"signed_blocks_window": "10000000000000"/' $dir/gaia1/config/genesis.json
 
@@ -38,6 +39,7 @@ gaiad keys add validator2 --home $dir/gaia2 --keyring-backend test
 gaiad genesis add-genesis-account $(gaiad keys show validator2 -a --home $dir/gaia2 --keyring-backend test) 1000000000000000000stake --home $dir/gaia2
 gaiad genesis gentx validator2 100000000000000000stake --chain-id localnet --home $dir/gaia2 --keyring-backend test
 sed -i "s|^minimum-gas-prices = \"\"|minimum-gas-prices = \"0stake\"|" $dir/gaia2/config/app.toml
+sed -i 's|^timeout_commit = "5s"|timeout_commit = "10s"|' $dir/gaia2/config/config.toml
 
 # gaiad validator3
 
@@ -54,6 +56,7 @@ gaiad genesis add-genesis-account $(gaiad keys show validator3 -a --home $dir/ga
 gaiad genesis gentx validator3 1000000stake --chain-id localnet --home $dir/gaia3 --keyring-backend test
 sed -i "s|^minimum-gas-prices = \"\"|minimum-gas-prices = \"0stake\"|" $dir/gaia3/config/app.toml
 sed -i 's|^priv_validator_laddr = ""|priv_validator_laddr = "tcp://0.0.0.0:12345"|' $dir/gaia3/config/config.toml
+# sed -i 's/"timeout_commit": *"5s"/"timeout_commit": "10s"/' $dir/gaia3/config/config.toml
 
 # gaiad validator4
 if [ -d "$dir/gaia4" ]; then
@@ -68,6 +71,7 @@ gaiad genesis add-genesis-account $(gaiad keys show validator4 -a --home $dir/ga
 gaiad genesis gentx validator4 1000000stake --chain-id localnet --home $dir/gaia4 --keyring-backend test
 sed -i "s|^minimum-gas-prices = \"\"|minimum-gas-prices = \"0stake\"|" $dir/gaia4/config/app.toml
 sed -i 's|^priv_validator_laddr = ""|priv_validator_laddr = "tcp://0.0.0.0:54321"|' $dir/gaia4/config/config.toml
+sed -i 's/"timeout_commit": *"5s"/"timeout_commit": "10s"/' $dir/gaia4/config/config.toml
 
 # collect gentxs
 

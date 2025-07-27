@@ -44,15 +44,17 @@ func (s *SimpleSigner) SaveState(vote *state.SigningState, chainID string) error
 	}
 
 	// 4. Broadcast the transaction
-	log.Printf("Prepared transaction: Height=%d, Round=%d, Type=%d, Key=%s",
+	log.Printf("Prepared transaction: signHeight=%d, Round=%d, Type=%d, Key=%s",
 		vote.Height, vote.Round, vote.Type, key)
+
+	// Broadcast the transaction
 	res, err := client.BroadcastTxCommit(context.Background(), txBytes)
 	if err != nil {
 		log.Printf("broadcast failed: %x", err)
 		return fmt.Errorf("broadcast failed: %w", err)
 	}
-	log.Printf("Broadcasted TX, hash: %x, height: %d, code: %d, log: %s",
-		res.Hash, res.Height, res.CheckTx.Code, res.CheckTx.Log)
+	log.Printf("Broadcasted TX, hash: %x, cometKMS-height: %d, code: %d, signRequest-height: %s",
+		res.Hash, res.Height, res.CheckTx.Code, vote.Height)
 	return nil
 }
 
